@@ -29,6 +29,7 @@ class SecurityCfg(BaseModel):
     csp_enabled: bool
     cors_origins: List[str]
     csrf_protect: bool
+    csp_policy: str
 
 
 class MLCfg(BaseModel):
@@ -81,3 +82,5 @@ class Settings(BaseModel):
 
 
 DatasetRegistry = Dict[str, DatasetEntry]
+
+

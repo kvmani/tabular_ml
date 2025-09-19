@@ -6,7 +6,7 @@ function PreviewTable({ data }) {
   }
   const columns = Object.keys(data[0]);
   return (
-    <div className="table-wrapper">
+    <div className="table-wrapper" data-testid="dataset-preview">
       <table>
         <thead>
           <tr>
@@ -36,7 +36,7 @@ function SummaryTable({ summary }) {
   }
   const stats = Object.keys(summary[columns[0]] || {});
   return (
-    <div className="table-wrapper">
+    <div className="table-wrapper" data-testid="summary-table">
       <table>
         <thead>
           <tr>
@@ -93,7 +93,7 @@ export default function DatasetManager({
     <div className="card">
       <div className="card-header">
         <h2>1. Dataset</h2>
-        <button type="button" onClick={onRefresh} className="secondary" disabled={loading}>
+        <button type="button" onClick={onRefresh} data-testid="refresh-datasets" className="secondary" disabled={loading}>
           Refresh list
         </button>
       </div>
@@ -101,7 +101,7 @@ export default function DatasetManager({
         <div className="dataset-selection">
           <label htmlFor="dataset-select">Select dataset</label>
           <select
-            id="dataset-select"
+            id="dataset-select" data-testid="dataset-selector"
             value={currentDatasetId || ''}
             onChange={(event) => onDatasetSelect(event.target.value)}
           >
@@ -151,6 +151,7 @@ export default function DatasetManager({
                   key={sample.key}
                   type="button"
                   onClick={() => onSampleLoad(sample.key)}
+                  data-testid={`load-sample-${sample.key}`}
                   disabled={loading}
                 >
                   {sample.name} ({sample.task})
@@ -170,7 +171,7 @@ export default function DatasetManager({
           </div>
           <div>
             <h3>Columns ({columnsInfo.columns.length})</h3>
-            <ul className="column-list">
+            <ul className="column-list" data-testid="column-list">
               {columnsInfo.columns.map((col) => (
                 <li key={col}>
                   <span>{col}</span>

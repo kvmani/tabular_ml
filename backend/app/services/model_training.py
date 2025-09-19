@@ -256,14 +256,12 @@ class ModelTrainer:
 
     @staticmethod
     def _one_hot_encoder() -> OneHotEncoder:
-        if version.parse(sklearn_version) >= version.parse("1.2"):
-            return OneHotEncoder(
-                handle_unknown="ignore",
-                sparse_output=settings.ml.sklearn_onehot_sparse,
-            )
-        return OneHotEncoder(
-            handle_unknown="ignore", sparse=settings.ml.sklearn_onehot_sparse
-        )
+        kwargs = {"handle_unknown": "ignore"}
+        if version.parse(sklearn_version) < version.parse("1.4"):
+            kwargs["sparse"] = settings.ml.sklearn_onehot_sparse
+        else:
+            kwargs["sparse_output"] = settings.ml.sklearn_onehot_sparse
+        return OneHotEncoder(**kwargs)
 
     def _train_logistic(
         self,

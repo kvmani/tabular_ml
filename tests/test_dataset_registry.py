@@ -26,3 +26,4 @@ def test_sample_load_creates_augmented_copy():
         assert augmented_metadata.extras["origin_dataset_id"] == metadata.dataset_id
         augmentation = augmented_metadata.extras.get("augmentation", {})
         assert augmentation.get("final_rows", 0) >= augmentation.get("target_rows", 0)
+

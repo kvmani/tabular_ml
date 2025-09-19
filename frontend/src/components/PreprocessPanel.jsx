@@ -176,10 +176,10 @@ export default function PreprocessPanel({
             disabled={disabled}
           />
           <div className="button-row">
-            <button type="button" onClick={handleDetect} disabled={disabled || loading}>
+            <button type="button" onClick={handleDetect} data-testid="detect-outliers" disabled={disabled || loading}>
               Detect outliers
             </button>
-            <button type="button" onClick={handleRemove} disabled={disabled || loading}>
+            <button type="button" onClick={handleRemove} data-testid="remove-outliers" disabled={disabled || loading}>
               Remove outliers
             </button>
           </div>
@@ -213,7 +213,7 @@ export default function PreprocessPanel({
             onChange={(event) => setImputeValue(event.target.value)}
             disabled={disabled || imputeStrategy !== 'constant'}
           />
-          <button type="button" onClick={handleImpute} disabled={disabled || loading}>
+          <button type="button" onClick={handleImpute} data-testid="impute-button" disabled={disabled || loading}>
             Impute missing values
           </button>
         </div>
@@ -240,14 +240,14 @@ export default function PreprocessPanel({
           </select>
           <label>Value</label>
           <input type="text" value={filterValue} onChange={(event) => setFilterValue(event.target.value)} disabled={disabled} />
-          <button type="button" onClick={handleFilter} disabled={disabled || loading}>
+          <button type="button" onClick={handleFilter} data-testid="filter-apply" disabled={disabled || loading}>
             Apply filter
           </button>
         </div>
         <div>
           <h3>Split data</h3>
           <label>Target column</label>
-          <select value={targetColumn} onChange={(event) => setTargetColumn(event.target.value)} disabled={disabled}>
+          <select value={targetColumn} data-testid="split-target" onChange={(event) => setTargetColumn(event.target.value)} disabled={disabled}>
             <option value="">-- select target --</option>
             {columns.map((column) => (
               <option key={column} value={column}>
@@ -256,12 +256,13 @@ export default function PreprocessPanel({
             ))}
           </select>
           <label>Task type</label>
-          <select value={taskType} onChange={(event) => setTaskType(event.target.value)} disabled={disabled}>
+          <select value={taskType} data-testid="split-task" onChange={(event) => setTaskType(event.target.value)} disabled={disabled}>
             <option value="classification">Classification</option>
             <option value="regression">Regression</option>
           </select>
           <label>Test size</label>
           <input
+            data-testid="split-test-size"
             type="number"
             step="0.05"
             min="0.05"
@@ -272,6 +273,7 @@ export default function PreprocessPanel({
           />
           <label>Validation size</label>
           <input
+            data-testid="split-val-size"
             type="number"
             step="0.05"
             min="0.05"
@@ -282,6 +284,7 @@ export default function PreprocessPanel({
           />
           <label className="checkbox">
             <input
+              data-testid="split-stratify"
               type="checkbox"
               checked={stratify}
               onChange={(event) => setStratify(event.target.checked)}
@@ -289,7 +292,7 @@ export default function PreprocessPanel({
             />
             Stratify splits (classification)
           </label>
-          <button type="button" onClick={handleSplit} disabled={disabled || loading}>
+          <button type="button" onClick={handleSplit} data-testid="create-split" disabled={disabled || loading}>
             Create train/validation/test split
           </button>
         </div>

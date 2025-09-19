@@ -1,17 +1,40 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
+let csrfToken = null;
+
+function updateCsrfToken(response) {
+  const headerToken = response.headers.get('x-csrf-token') || response.headers.get('X-CSRF-Token');
+  if (headerToken) {
+    csrfToken = headerToken;
+  }
+}
+
 async function request(path, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const headers = {
+    ...(options.headers || {})
+  };
+  const hasContentType = headers['Content-Type'] || headers['content-type'];
+  if (!hasContentType && !['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method)) {
+    headers['Content-Type'] = 'application/json';
+  }
+  if (!['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes(method) && csrfToken) {
+    headers['X-CSRF-Token'] = csrfToken;
+  }
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {})
-    },
-    ...options
+    ...options,
+    headers,
+    credentials: 'include'
   });
+
+  updateCsrfToken(response);
+
   if (!response.ok) {
     const message = await response.text();
     throw new Error(message || 'Request failed');
   }
+
   const contentType = response.headers.get('content-type');
   if (contentType && contentType.includes('application/json')) {
     return response.json();
@@ -36,10 +59,17 @@ export async function uploadDataset(file, name, description) {
   formData.append('file', file);
   formData.append('name', name || file.name);
   formData.append('description', description || 'Uploaded dataset');
+  const headers = {};
+  if (csrfToken) {
+    headers['X-CSRF-Token'] = csrfToken;
+  }
   const response = await fetch(`${API_BASE_URL}/data/upload`, {
     method: 'POST',
-    body: formData
+    body: formData,
+    headers,
+    credentials: 'include'
   });
+  updateCsrfToken(response);
   if (!response.ok) {
     const message = await response.text();
     throw new Error(message || 'Upload failed');

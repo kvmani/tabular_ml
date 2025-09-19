@@ -7,9 +7,10 @@ export default function SystemConfigPanel({ config }) {
   const datasets = Object.entries(config.dataset_registry || {});
   const appSettings = config.settings?.app || {};
   const limits = config.settings?.limits || {};
+  const security = config.settings?.security || {};
 
   return (
-    <div className="card">
+    <div className="card" data-testid="system-config-panel">
       <div className="card-header">
         <h2>6. Configuration</h2>
       </div>
@@ -33,6 +34,14 @@ export default function SystemConfigPanel({ config }) {
               <strong>Random seed:</strong> {appSettings.random_seed}
             </li>
           </ul>
+          <h3>Security</h3>
+          <ul className="muted-list">
+            <li>CSP: {security.csp_enabled ? 'enabled' : 'disabled'}</li>
+            <li>CSRF protection: {security.csrf_protect ? 'enabled' : 'disabled'}</li>
+            <li>
+              Policy: <code>{security.csp_policy}</code>
+            </li>
+          </ul>
           <h3>Limits</h3>
           <ul className="muted-list">
             <li>Preview rows: {limits.max_rows_preview}</li>
@@ -45,7 +54,7 @@ export default function SystemConfigPanel({ config }) {
           <ul className="registry-list">
             {datasets.map(([key, entry]) => (
               <li key={key}>
-                <strong>{entry.name || key}</strong> — {entry.task} (target: {entry.target})
+                <strong>{entry.name || key}</strong> - {entry.task} (target: {entry.target})
               </li>
             ))}
           </ul>

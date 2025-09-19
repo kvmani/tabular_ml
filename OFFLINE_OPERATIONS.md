@@ -1,58 +1,41 @@
 # Offline Operations Guide
 
-This project targets air-gapped deployments. The checklist below summarises how to bootstrap, operate, and maintain the stack without internet access.
+This project targets air-gapped deployments. For a detailed walkthrough see [RUNNING_OFFLINE.md](RUNNING_OFFLINE.md). The checklist below summarises the key tasks operators typically perform.
 
-## 1. Prepare Python dependencies
+## 1. Bootstrap dependencies
 
-1. Mirror the packages listed in `REQUIREMENTS.txt` to an internal PyPI proxy **or** download wheels ahead of time.
-2. Place cached wheels in a directory such as `vendor/pip/`.
-3. Run `make setup` with the environment variable `PIP_FIND_LINKS=vendor/pip` to force pip to install from the local cache:
-   ```bash
-   PIP_FIND_LINKS=vendor/pip make setup
-   ```
-4. Verify installation succeeded by launching `python -m pytest -q`.
-5. PyTorch is optional. Only mirror and install `torch` wheels if you intend to expose the neural network algorithm; the rest of the system and tests run without it.
+- Run `scripts/bootstrap_offline.sh` (or `scripts/bootstrap_offline.ps1`) while you still have internet access.
+- Copy the populated `vendor/` directory, Playwright browsers, and `artifacts/` templates into the secured environment.
 
-## 2. Frontend dependencies
+## 2. Backend setup
 
-1. Mirror npm packages (`react`, `react-dom`, `vite`, `plotly.js`, `react-plotly.js`).
-2. Configure `.npmrc` to point at the mirror or copy `.tgz` tarballs into `frontend/vendor/`.
-3. Install dependencies offline:
-   ```bash
-   cd frontend
-   npm install --offline --cache ./vendor
-   npm run build
-   ```
-4. Serve the built assets locally or use `npm run dev` for an interactive session.
+- `make setup` creates a virtualenv and installs from `vendor/python_wheels`.
+- Launch the API with `make dev` (default `http://127.0.0.1:8000`).
+- Inspect merged configuration via `GET /system/config` or `python cli.py info`.
 
-## 3. Configuration management
+## 3. Frontend setup
 
-- The default configuration lives in `config/config.yaml`.
-- Operators should edit `config/config.local.yaml` (gitignored) to add local overrides for host, port, or feature flags.
-- Environment overrides use the `TABULAR_ML__...` prefix. Example:
-  ```bash
-  TABULAR_ML__APP__LOG_LEVEL=DEBUG python run_app.py
-  ```
-- Use `GET /system/config` (or `python cli.py info`) to inspect the effective configuration at runtime.
+- `npm --prefix frontend run dev` serves the React UI on `http://127.0.0.1:5173`.
+- For static hosting run `npm --prefix frontend run build` followed by `npm --prefix frontend run preview -- --host 127.0.0.1 --port 5173`.
 
-## 4. Dataset handling
+## 4. Dataset management
 
-- All sample datasets are stored under `data/sample_datasets/`.
-- To add new datasets, update `config/datasets.yaml` and place the CSV/XLSX file in the same directory.
-- Synthetic augmentation is controlled via `datasets.synthetic` in `config/config.yaml`. Toggle generators or multipliers there.
-- Use `python scripts/gen_synthetic_all.py` to dry-run augmentation without persisting files.
+- Sample CSV files live in `data/sample_datasets/`; metadata lives in `config/datasets.yaml`.
+- Regenerate the larger samples with `py -3 scripts/prepare_sample_datasets.py` when new upstream data is available.
+- Synthetic augmentation is controlled via `datasets.synthetic` in `config/config.yaml`.
 
-## 5. Operational smoke tests
+## 5. Smoke coverage
 
-- API health: `curl http://<host>:<port>/health`
-- CLI dataset list: `python cli.py datasets list`
-- CLI training smoke: `python cli.py train --name titanic --algo logreg --task classification`
-- REST smoke: `scripts/smoke_backend.sh http://<host>:<port>`
+| Tool | Command | Notes |
+|------|---------|-------|
+| REST smoke | `scripts/smoke_api.sh http://127.0.0.1:8000` | Saves JSON payloads to `artifacts/api/` |
+| CLI smoke | `scripts/smoke_backend.sh` | Stores CLI outputs under `artifacts/cli/` |
+| UI smoke | `npm --prefix frontend run test:e2e` | Requires backend + frontend, writes screenshots to `artifacts/ui/` |
 
 ## 6. Routine maintenance
 
 - Run `make lint` and `make test` before promoting changes.
-- Periodically refresh cached wheels/tarballs to pick up security updates.
-- Rotate datasets by updating `config/datasets.yaml` and documenting provenance in `README.md`.
+- Keep vendored wheels/node modules up to date by re-running the bootstrap script outside the air gap.
+- Document new configuration flags or dataset additions in `README.md` and `RUNNING_OFFLINE.md`.
 
-By following these steps the platform remains self-contained and auditable within a locked-down intranet.
+Following these steps keeps the platform self-contained and auditable inside locked-down intranets.

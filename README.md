@@ -1,113 +1,110 @@
 # Intranet Tabular ML Studio
 
-Intranet Tabular ML Studio is an offline-first workflow for exploring, preparing, and modelling tabular datasets. The project is designed for air-gapped deployments: every dependency is vendored locally, configuration lives in YAML, and all state remains in-memory unless explicitly exported.
+An offline-first FastAPI + React workspace for exploring and modelling tabular datasets. The project is hardened for air-gapped intranets: dependencies are vendored, datasets ship with the repo, configuration is declarative, and no telemetry or external network calls are performed at runtime.
 
-## ✨ Highlights
+## Highlights
 
-- **Layered configuration** – defaults live in `config/config.yaml`, operators override via `config.local.yaml`, and environment variables win last.
-- **Expanded dataset catalog** – 22 curated and synthetic CSV files ship in `data/sample_datasets/` with registry metadata in `config/datasets.yaml`.
-- **Synthetic augmentation** – configurable generators (SMOTE-like, Gaussian noise, and rule-based perturbations) expand each dataset ≥10× at runtime.
-- **FastAPI backend + React frontend** – runs without external APIs, telemetry, or CDN assets.
-- **Offline CLI & smoke scripts** – `cli.py` mirrors core REST flows for shell automation and `scripts/smoke_backend.sh` validates a running backend.
-- **Deterministic training** – seeds propagate from configuration so pytest, CLI, and API produce reproducible splits and metrics.
+- **Pydantic v2 + scikit-learn 1.1�1.5 compatibility** with adaptive OneHotEncoder handling.
+- **Layered YAML configuration** (defaults, local overrides, env vars) merged via `config.load_settings()` and exposed through `/system/config` and the UI panel.
+- **Security by default:** CSP headers, CSRF protection, optional file uploads, in-memory run tracking only.
+- **Curated dataset catalog** (1,000+ row Titanic & Adult samples plus synthetics) with a regeneration script.
+- **Offline CLI & smoke scripts** mirroring REST workflows and storing artifacts under `artifacts/`.
+- **Playwright E2E harness** that blocks non-localhost traffic, captures screenshots, traces, and produces an HTML report.
 
-## 🏗 Repository map
-
-```
-├── backend/
-│   └── app/
-│       ├── api/               # FastAPI routers and Pydantic schemas
-│       ├── core/              # Runtime config helpers
-│       ├── models/            # Dataclasses for in-memory storage
-│       ├── services/          # Data loading, preprocessing, augmentation, training
-│       └── main.py            # FastAPI application factory
-├── config/
-│   ├── config.yaml            # Safe defaults committed to source
-│   ├── config.local.yaml      # Operator overrides (gitignored)
-│   └── datasets.yaml          # Dataset registry consumed by backend + CLI
-├── data/sample_datasets/      # Curated CSV files ready for air-gapped use
-├── frontend/                  # React + Vite single page application
-├── scripts/                   # Operational helpers (smoke tests, synthetic generation)
-├── tests/                     # Pytest suite covering config, data, API, and training flows
-├── cli.py                     # Offline orchestration CLI
-├── run_app.py                 # uvicorn bootstrap respecting configuration
-├── Makefile                   # Common developer tasks
-└── REQUIREMENTS.txt           # Python runtime dependencies
-```
-
-## ⚙️ Running the backend
+## Quick start
 
 ```bash
-make setup        # create virtualenv and install offline-ready wheels
-make dev          # run FastAPI with auto-reload (uses config host/port)
+# 1. (Optional but recommended) Bootstrap vendored wheels, node modules, and Playwright browsers
+make bootstrap          # or make bootstrap-win on Windows
+
+# 2. Create a virtual environment and install from vendor
+make setup
+
+# 3. Run the backend (FastAPI + Uvicorn)
+make dev                # serves on http://127.0.0.1:8000
+
+# 4. Run the frontend (Vite dev server)
+npm --prefix frontend run dev   # serves on http://127.0.0.1:5173
 ```
 
-For a one-shot invocation without reload:
+For production-style builds, `npm --prefix frontend run build` followed by `npm --prefix frontend run preview -- --host 127.0.0.1 --port 5173` serves the compiled bundle.
+
+## Configuration model
+
+- **Defaults:** `config/config.yaml`
+- **Local overrides:** `config/config.local.yaml` (gitignored)
+- **Environment:** prefix with `TABULAR_ML__`, separating keys with `__` (e.g. `TABULAR_ML__APP__PORT=9001`).
+- **Dataset registry:** `config/datasets.yaml`
+
+`config/schema.py` defines nested Pydantic models (`Settings.app`, `.security`, `.ml`, `.datasets`, `.limits`) and enforces validation. `config/__init__.py` merges all layers, seeds RNGs, and exposes `settings` for import.
+
+The React UI surfaces the effective configuration and dataset registry in the **Configuration** panel, making CSP / CSRF status visible to operators.
+
+## Data catalog
+
+- `data/sample_datasets/titanic_sample.csv` � 1,309 rows from OpenML Titanics.
+- `data/sample_datasets/adult_income_sample.csv` � 1,000 rows from the UCI Adult income dataset.
+- Synthetic regression/classification datasets with augmentation metadata.
+
+Regenerate or refresh samples with:
 
 ```bash
-python run_app.py
+py -3 scripts/prepare_sample_datasets.py
 ```
 
-Health is available at `http://<host>:<port>/health`. The `/system/config` endpoint exposes the merged configuration and dataset registry for auditing.
-
-## 🧪 Testing & linting
-
-```bash
-make test         # pytest -q
-make lint         # ruff + black --check
-make fmt          # black .
-```
-
-Pytest exercises configuration layering, dataset registry wiring, preprocessing determinism, algorithm training, and REST smoke flows with uploads disabled.
-
-## 🧩 Optional dependencies
-
-The default install path keeps dependencies lightweight for CPU-only environments. Core workflows use scikit-learn models exclusively; installing [PyTorch](https://pytorch.org/) is optional. When `torch` is present the `neural_network` algorithm (CLI alias `nn`) is exposed in the API and CLI. The pytest suite automatically detects the library and runs neural-network coverage only when it is available, so environments without PyTorch remain fully supported.
-
-## 🗂 Dataset registry & synthetic expansion
-
-Dataset metadata is stored in `config/datasets.yaml`. Each entry defines a key, friendly name, file, target column, description, and task type. Example excerpt:
-
-```yaml
-titanic:
-  name: "Titanic Survival"
-  description: "Passenger data with survival labels"
-  file: "titanic_sample.csv"
-  target: "Survived"
-  task: "classification"
-synthetic_sales_forecast:
-  name: "Sales Forecast"
-  description: "Synthetic quarterly revenue regression"
-  file: "synthetic_sales_forecast.csv"
-  target: "quarterly_revenue_k"
-  task: "regression"
-```
-
-When a dataset is loaded, the backend automatically materialises an augmented sibling dataset (respecting `datasets.synthetic` settings) and tracks provenance via metadata extras. `scripts/gen_synthetic_all.py` shows how to invoke the augmentation pipeline without persisting data.
-
-## 🛠 CLI usage
+## CLI usage
 
 ```bash
 python cli.py datasets list
-python cli.py datasets preview --name titanic --rows 20
+python cli.py datasets preview --name titanic --rows 10
 python cli.py train --name titanic --algo logreg --task classification
 python cli.py evaluate --run-id <model_id>
 python cli.py info
 ```
 
-The CLI operates entirely offline using the same services as the API. Runs triggered through the CLI populate the in-memory `run_tracker`, which also backs the `/runs/last` endpoint.
+CLI runs share the same in-memory services as the REST API, and populate `/runs/last` via the `RunTracker` singleton.
 
-## 🔐 Air-gapped considerations
+## Smoke automation
 
-- No CDN links or telemetry endpoints are referenced in the frontend; all assets are bundled locally.
-- File uploads are feature-flagged (`app.allow_file_uploads`). When disabled (the default), the backend never imports `python-multipart` and the upload route is omitted entirely.
-- Logging defaults to stdout with operator-configurable level; no files are written unless explicitly configured.
-- Limits (`limits.max_rows_preview`, `limits.max_rows_train`, `limits.max_cols`) are enforced on preview and training routes to guard resources.
+| Script | Purpose | Output |
+|--------|---------|--------|
+| `scripts/smoke_api.sh` | Exercises REST endpoints (health, algorithms, sample load, split, train, evaluate) using CSRF headers | `artifacts/api/*.json` |
+| `scripts/smoke_backend.sh` | CLI flow (list, preview, train, evaluate, info) | `artifacts/cli/*.json` |
+| `npm --prefix frontend run test:e2e` | Playwright UI smoke, network-blocked, captures screenshots and trace | `artifacts/ui/` |
 
-## 📚 Additional docs
+## Testing & linting
 
-- [`OFFLINE_OPERATIONS.md`](OFFLINE_OPERATIONS.md) – end-to-end bootstrap guidance for air-gapped environments.
-- [`BACKWARDS_COMPAT.md`](BACKWARDS_COMPAT.md) – notes on Pydantic v1/v2 and scikit-learn 1.1–1.5 compatibility flags.
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) – coding standards, testing expectations, and commit guidance.
+```bash
+make test              # pytest -q
+npm --prefix frontend run test:e2e
+make lint              # ruff + black --check
+make fmt               # black .
+```
 
-Happy hacking inside the air-gap! 👩‍💻
+Pytest coverage includes configuration layering, dataset registry wiring, preprocessing, algorithm training, CLI commands, API smoke tests, and an integration boot of `run_app.py`. Playwright walks the UI flow end-to-end and stores screenshots in `artifacts/ui/` for auditing.
+
+## Offline operations
+
+Detailed instructions for preparing and operating the project in air-gapped environments are documented in [RUNNING_OFFLINE.md](RUNNING_OFFLINE.md).
+
+## Project layout
+
+```
+backend/                 FastAPI application (routers, services, models)
+config/                  YAML config + Pydantic schemas
+frontend/                React + Vite single-page app
+scripts/                 Operational helpers (bootstrap, smoke tests, dataset prep)
+tests/                   Pytest suite + CLI/integration coverage
+e2e/                     Playwright config and smoke test
+vendor/                  Vendored wheels & node modules (populated via bootstrap)
+artifacts/               Smoke-test outputs (ignored by git)
+```
+
+## Privacy & security stance
+
+- No telemetry, analytics, or external HTTP calls in application code.
+- Logs emit to stdout; user data remains in-memory unless explicitly exported.
+- CSP and CSRF protections are enforced when `security.csp_enabled` / `security.csrf_protect` are true (default).
+- File uploads are disabled by default (no `python-multipart` import when `allow_file_uploads=false`).
+
+Happy experimenting inside the air gap!

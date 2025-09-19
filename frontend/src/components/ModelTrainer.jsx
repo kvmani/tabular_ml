@@ -89,7 +89,7 @@ export default function ModelTrainer({
             <option value="regression">Regression</option>
           </select>
           <label>Target column</label>
-          <select value={targetColumn} onChange={(event) => setTargetColumn(event.target.value)} disabled={disabled}>
+          <select value={targetColumn} data-testid="train-target" onChange={(event) => setTargetColumn(event.target.value)} disabled={disabled}>
             <option value="">-- select target --</option>
             {columns.map((column) => (
               <option key={column} value={column}>
@@ -104,7 +104,7 @@ export default function ModelTrainer({
             onChange={(event) => setHyperparams(event.target.value)}
             disabled={disabled}
           />
-          <button type="button" onClick={handleTrain} disabled={disabled || loading}>
+          <button type="button" onClick={handleTrain} data-testid="train-button" disabled={disabled || loading}>
             Start training
           </button>
           {splitId && <p className="muted">Using split: {splitId}</p>}

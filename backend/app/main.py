@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 
+from backend.app.core.security import CSPMiddleware, CSRFMiddleware
 from backend.app.api.routes import data, modeling, preprocess, system, visualization
 
 
@@ -32,6 +33,15 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+    )
+    app.add_middleware(
+        CSRFMiddleware,
+        enabled=settings.security.csrf_protect,
+    )
+    app.add_middleware(
+        CSPMiddleware,
+        enabled=settings.security.csp_enabled,
+        policy=settings.security.csp_policy,
     )
     app.include_router(system.router)
     app.include_router(data.router)
