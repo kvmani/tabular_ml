@@ -4,12 +4,14 @@ from __future__ import annotations
 from typing import Any, Dict
 
 import numpy as np
-import pandas as pd
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, HTTPException, Query
+
+from config import settings
 
 from backend.app.api import schemas
 from backend.app.services.data_manager import data_manager
 from backend.app.services.file_loader import read_tabular_file
+from backend.app.api.utils import metadata_to_model
 
 router = APIRouter(prefix="/data", tags=["data"])
 
@@ -33,31 +35,43 @@ def load_sample(sample_key: str) -> schemas.UploadResponse:
         metadata = data_manager.load_sample_dataset(sample_key)
     except (KeyError, FileNotFoundError) as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return schemas.UploadResponse(dataset=metadata)
-
-
-@router.post("/upload", response_model=schemas.UploadResponse)
-async def upload_dataset(
-    file: UploadFile = File(...),
-    name: str = Form("Uploaded Dataset"),
-    description: str = Form("User uploaded dataset"),
-) -> schemas.UploadResponse:
-    contents = await file.read()
-    try:
-        df = read_tabular_file(contents, file.filename)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    metadata = data_manager.create_dataset(
-        df=df,
-        name=name or file.filename,
-        source=f"upload:{file.filename}",
-        description=description,
-    )
-    return schemas.UploadResponse(dataset=metadata)
+    return schemas.UploadResponse(dataset=metadata_to_model(metadata))
+
+
+if settings.app.allow_file_uploads:
+    from fastapi import File, Form, UploadFile  # type: ignore
+
+    @router.post("/upload", response_model=schemas.UploadResponse)
+    async def upload_dataset(  # pragma: no cover - optional feature
+        file: UploadFile = File(...),
+        name: str = Form("Uploaded Dataset"),
+        description: str = Form("User uploaded dataset"),
+    ) -> schemas.UploadResponse:
+        contents = await file.read()
+        try:
+            df = read_tabular_file(contents, file.filename)
+            metadata = data_manager.create_dataset(
+                df=df,
+                name=name or file.filename,
+                source=f"upload:{file.filename}",
+                description=description,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return schemas.UploadResponse(dataset=metadata_to_model(metadata))
 
 
 @router.get("/{dataset_id}/preview", response_model=schemas.PreviewResponse)
-def dataset_preview(dataset_id: str, limit: int = 50) -> schemas.PreviewResponse:
+def dataset_preview(
+    dataset_id: str, limit: int = Query(50, ge=1)
+) -> schemas.PreviewResponse:
+    if limit > settings.limits.max_rows_preview:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Preview limit {limit} exceeds max_rows_preview={settings.limits.max_rows_preview}",
+        )
     try:
         df = data_manager.get_dataset(dataset_id)
     except KeyError as exc:
@@ -73,8 +87,8 @@ def dataset_summary(dataset_id: str) -> schemas.SummaryResponse:
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     describe_df = df.describe(include="all", datetime_is_numeric=True).transpose()
-    summary: Dict[str, Dict[str, Any]] = (
-        describe_df.replace({np.nan: None}).to_dict(orient="index")
+    summary: Dict[str, Dict[str, Any]] = describe_df.replace({np.nan: None}).to_dict(
+        orient="index"
     )
     return schemas.SummaryResponse(summary=summary)
 

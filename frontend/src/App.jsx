@@ -4,6 +4,7 @@ import PreprocessPanel from './components/PreprocessPanel.jsx';
 import VisualizationPanel from './components/VisualizationPanel.jsx';
 import ModelTrainer from './components/ModelTrainer.jsx';
 import EvaluationPanel from './components/EvaluationPanel.jsx';
+import SystemConfigPanel from './components/SystemConfigPanel.jsx';
 import {
   listDatasets,
   listSampleDatasets,
@@ -13,7 +14,8 @@ import {
   getDatasetSummary,
   getDatasetColumns,
   listAlgorithms,
-  evaluateModel
+  evaluateModel,
+  getSystemConfig
 } from './api/client.js';
 
 function useNotification() {
@@ -44,6 +46,8 @@ export default function App() {
   const [metrics, setMetrics] = useState(null);
   const [evaluation, setEvaluation] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [systemConfig, setSystemConfig] = useState(null);
+  const [allowUploads, setAllowUploads] = useState(false);
 
   const { message, variant, notify } = useNotification();
 
@@ -82,14 +86,17 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const [datasetsResponse, samplesResponse, algorithmsResponse] = await Promise.all([
+        const [datasetsResponse, samplesResponse, algorithmsResponse, configResponse] = await Promise.all([
           listDatasets(),
           listSampleDatasets(),
-          listAlgorithms()
+          listAlgorithms(),
+          getSystemConfig()
         ]);
         setDatasets(datasetsResponse.datasets || []);
         setSampleDatasets(samplesResponse.samples || []);
         setAlgorithms(algorithmsResponse.algorithms || []);
+        setSystemConfig(configResponse);
+        setAllowUploads(Boolean(configResponse?.settings?.app?.allow_file_uploads));
       } catch (error) {
         notify(error.message, 'error');
       }
@@ -175,6 +182,9 @@ export default function App() {
         <p className="muted">Offline-first machine learning workflow for tabular data.</p>
       </header>
       {message && <div className={`notification ${variant}`}>{message}</div>}
+      {!allowUploads && (
+        <div className="banner warning" role="status">File uploads are disabled; use the dataset registry instead.</div>
+      )}
       <DatasetManager
         datasets={datasets}
         currentDatasetId={currentDatasetId}
@@ -187,6 +197,7 @@ export default function App() {
         columnsInfo={columnsInfo}
         loading={loading}
         onRefresh={() => refreshDatasets(currentDatasetId)}
+        allowUploads={allowUploads}
       />
       <PreprocessPanel
         datasetId={currentDatasetId}
@@ -218,6 +229,7 @@ export default function App() {
         onEvaluate={handleEvaluate}
         disabled={loading}
       />
+      <SystemConfigPanel config={systemConfig} />
       <footer>
         <p className="muted">Ready for air-gapped deployments. All processing happens on your infrastructure.</p>
       </footer>

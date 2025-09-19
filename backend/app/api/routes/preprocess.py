@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 from backend.app.api import schemas
 from backend.app.services import preprocess
 from backend.app.services.data_manager import data_manager
+from backend.app.api.utils import metadata_to_model
 
 router = APIRouter(prefix="/preprocess", tags=["preprocess"])
 
@@ -17,8 +18,12 @@ def _get_dataframe(dataset_id: str):
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/{dataset_id}/detect-outliers", response_model=schemas.OutlierDetectionResponse)
-def detect_outliers(dataset_id: str, request: schemas.OutlierDetectionRequest) -> schemas.OutlierDetectionResponse:
+@router.post(
+    "/{dataset_id}/detect-outliers", response_model=schemas.OutlierDetectionResponse
+)
+def detect_outliers(
+    dataset_id: str, request: schemas.OutlierDetectionRequest
+) -> schemas.OutlierDetectionResponse:
     df = _get_dataframe(dataset_id)
     report = preprocess.detect_outliers(
         df,
@@ -28,8 +33,12 @@ def detect_outliers(dataset_id: str, request: schemas.OutlierDetectionRequest) -
     return schemas.OutlierDetectionResponse(**report.to_dict())
 
 
-@router.post("/{dataset_id}/remove-outliers", response_model=schemas.OutlierRemovalResponse)
-def remove_outliers(dataset_id: str, request: schemas.OutlierDetectionRequest) -> schemas.OutlierRemovalResponse:
+@router.post(
+    "/{dataset_id}/remove-outliers", response_model=schemas.OutlierRemovalResponse
+)
+def remove_outliers(
+    dataset_id: str, request: schemas.OutlierDetectionRequest
+) -> schemas.OutlierRemovalResponse:
     df = _get_dataframe(dataset_id)
     report = preprocess.detect_outliers(
         df,
@@ -41,17 +50,25 @@ def remove_outliers(dataset_id: str, request: schemas.OutlierDetectionRequest) -
         columns=request.columns,
         z_threshold=request.z_threshold,
     )
-    metadata = data_manager.create_dataset(
-        cleaned,
-        name=f"{data_manager.get_metadata(dataset_id).name} (outliers removed)",
-        source=f"derived:{dataset_id}",
-        description="Dataset with outliers removed",
+    try:
+        metadata = data_manager.create_dataset(
+            cleaned,
+            name=f"{data_manager.get_metadata(dataset_id).name} (outliers removed)",
+            source=f"derived:{dataset_id}",
+            description="Dataset with outliers removed",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return schemas.OutlierRemovalResponse(
+        dataset=metadata_to_model(metadata),
+        report=schemas.OutlierDetectionResponse(**report.to_dict()),
     )
-    return schemas.OutlierRemovalResponse(dataset=metadata, report=schemas.OutlierDetectionResponse(**report.to_dict()))
 
 
 @router.post("/{dataset_id}/impute", response_model=schemas.ImputationResponse)
-def impute(dataset_id: str, request: schemas.ImputationRequest) -> schemas.ImputationResponse:
+def impute(
+    dataset_id: str, request: schemas.ImputationRequest
+) -> schemas.ImputationResponse:
     df = _get_dataframe(dataset_id)
     imputed = preprocess.impute_missing(
         df,
@@ -59,29 +76,37 @@ def impute(dataset_id: str, request: schemas.ImputationRequest) -> schemas.Imput
         columns=request.columns,
         fill_value=request.fill_value,
     )
-    metadata = data_manager.create_dataset(
-        imputed,
-        name=f"{data_manager.get_metadata(dataset_id).name} (imputed)",
-        source=f"derived:{dataset_id}",
-        description="Dataset with missing values imputed",
-    )
-    return schemas.ImputationResponse(dataset=metadata)
+    try:
+        metadata = data_manager.create_dataset(
+            imputed,
+            name=f"{data_manager.get_metadata(dataset_id).name} (imputed)",
+            source=f"derived:{dataset_id}",
+            description="Dataset with missing values imputed",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return schemas.ImputationResponse(dataset=metadata_to_model(metadata))
 
 
 @router.post("/{dataset_id}/filter", response_model=schemas.FilterResponse)
-def filter_dataset(dataset_id: str, request: schemas.FilterRequest) -> schemas.FilterResponse:
+def filter_dataset(
+    dataset_id: str, request: schemas.FilterRequest
+) -> schemas.FilterResponse:
     df = _get_dataframe(dataset_id)
     try:
         filtered = preprocess.apply_filters(df, [rule.dict() for rule in request.rules])
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    metadata = data_manager.create_dataset(
-        filtered,
-        name=f"{data_manager.get_metadata(dataset_id).name} (filtered)",
-        source=f"derived:{dataset_id}",
-        description="Filtered dataset",
-    )
-    return schemas.FilterResponse(dataset=metadata)
+    try:
+        metadata = data_manager.create_dataset(
+            filtered,
+            name=f"{data_manager.get_metadata(dataset_id).name} (filtered)",
+            source=f"derived:{dataset_id}",
+            description="Filtered dataset",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return schemas.FilterResponse(dataset=metadata_to_model(metadata))
 
 
 @router.post("/{dataset_id}/split", response_model=schemas.SplitResponse)

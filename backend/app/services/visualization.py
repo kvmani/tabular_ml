@@ -28,10 +28,14 @@ def scatter(
     return fig.to_dict()
 
 
-def training_history(history: List[Dict[str, object]], metric: str = "train_loss") -> Dict[str, object]:
+def training_history(
+    history: List[Dict[str, object]], metric: str = "train_loss"
+) -> Dict[str, object]:
     if not history:
         fig = go.Figure()
-        fig.update_layout(title="No training history available", template="plotly_white")
+        fig.update_layout(
+            title="No training history available", template="plotly_white"
+        )
         return fig.to_dict()
     epochs = [entry.get("epoch", idx + 1) for idx, entry in enumerate(history)]
     fig = go.Figure()
@@ -53,7 +57,9 @@ def training_history(history: List[Dict[str, object]], metric: str = "train_loss
                 name="Validation Loss",
             )
         )
-    if any("metrics" in entry and isinstance(entry["metrics"], dict) for entry in history):
+    if any(
+        "metrics" in entry and isinstance(entry["metrics"], dict) for entry in history
+    ):
         metric_key = metric
         sample_metrics = history[-1]["metrics"]
         if metric_key not in sample_metrics:
@@ -104,14 +110,20 @@ def confusion_matrix_plot(data: Dict[str, object]) -> Dict[str, object]:
     return fig.to_dict()
 
 
-def roc_curve_plot(data: Optional[Dict[str, List[float]]]) -> Optional[Dict[str, object]]:
+def roc_curve_plot(
+    data: Optional[Dict[str, List[float]]]
+) -> Optional[Dict[str, object]]:
     if not data:
         return None
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(x=data["fpr"], y=data["tpr"], mode="lines", name="ROC Curve")
     )
-    fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode="lines", name="Chance", line=dict(dash="dash")))
+    fig.add_trace(
+        go.Scatter(
+            x=[0, 1], y=[0, 1], mode="lines", name="Chance", line=dict(dash="dash")
+        )
+    )
     fig.update_layout(
         title="Receiver Operating Characteristic",
         xaxis_title="False Positive Rate",
@@ -126,7 +138,9 @@ def regression_comparison_plot(data: Dict[str, List[float]]) -> Dict[str, object
     predicted = data.get("predicted", [])
     if not actual or not predicted:
         fig = go.Figure()
-        fig.update_layout(title="Actual vs Predicted (no data)", template="plotly_white")
+        fig.update_layout(
+            title="Actual vs Predicted (no data)", template="plotly_white"
+        )
         return fig.to_dict()
     fig = px.scatter(
         x=actual,

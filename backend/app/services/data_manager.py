@@ -2,14 +2,17 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from threading import Lock
 from typing import Dict, Iterable, List, Optional
 from uuid import uuid4
 
 import pandas as pd
 
+from config import settings
+
 from backend.app.models.storage import DataSplit, DatasetMetadata, ModelArtifact
+from backend.app.services.data_augment import augment_dataset
 from backend.app.utils.dataset_registry import SAMPLE_DATASETS
 
 
@@ -23,6 +26,7 @@ class DataManager:
         self._models: Dict[str, ModelArtifact] = {}
         self._lock = Lock()
         self.sample_datasets = SAMPLE_DATASETS
+        self.synthetic_cfg = settings.datasets.synthetic
 
     # ------------------------------------------------------------------
     # Dataset operations
@@ -36,13 +40,17 @@ class DataManager:
     ) -> DatasetMetadata:
         """Store a dataframe and return its metadata."""
 
+        if df.shape[1] > settings.limits.max_cols:
+            raise ValueError(
+                f"Dataset has {df.shape[1]} columns which exceeds the limit of {settings.limits.max_cols}."
+            )
         dataset_id = uuid4().hex
         metadata = DatasetMetadata(
             dataset_id=dataset_id,
             name=name,
             source=source,
             description=description,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             num_rows=int(df.shape[0]),
             num_columns=int(df.shape[1]),
             columns=list(df.columns),
@@ -91,15 +99,19 @@ class DataManager:
     def list_sample_datasets(self) -> List[Dict[str, object]]:
         """Return metadata describing built-in datasets."""
 
-        return [
-            {
-                "key": key,
-                "name": dataset.name,
-                "description": dataset.description,
-                "target_column": dataset.target_column,
-            }
-            for key, dataset in self.sample_datasets.items()
-        ]
+        samples: List[Dict[str, object]] = []
+        for key, dataset in self.sample_datasets.items():
+            samples.append(
+                {
+                    "key": key,
+                    "name": dataset.name,
+                    "description": dataset.description,
+                    "target_column": dataset.target_column,
+                    "task": dataset.task,
+                    "synthetic_available": self.synthetic_cfg.enable,
+                }
+            )
+        return samples
 
     def load_sample_dataset(self, key: str) -> DatasetMetadata:
         if key not in self.sample_datasets:
@@ -113,12 +125,38 @@ class DataManager:
             df = pd.read_csv(dataset.path)
         else:
             df = pd.read_excel(dataset.path)
-        return self.create_dataset(
+        metadata = self.create_dataset(
             df=df,
             name=dataset.name,
             source=f"sample:{dataset.key}",
             description=dataset.description,
         )
+        metadata.extras["task"] = dataset.task
+        metadata.extras["target_column"] = dataset.target_column
+
+        if self.synthetic_cfg.enable:
+            augmented_df, augmentation_info = augment_dataset(
+                df,
+                target_column=dataset.target_column,
+                task_type=dataset.task,
+                config=self.synthetic_cfg,
+            )
+            augmented_metadata = self.create_dataset(
+                df=augmented_df,
+                name=f"{dataset.name} (Augmented)",
+                source=f"sample:{dataset.key}:synthetic",
+                description=f"{dataset.description} [Synthetic augmentation]",
+            )
+            augmented_metadata.extras.update(
+                {
+                    "augmentation": augmentation_info,
+                    "target_column": dataset.target_column,
+                    "task": dataset.task,
+                    "origin_dataset_id": metadata.dataset_id,
+                }
+            )
+            metadata.extras["augmented_dataset_id"] = augmented_metadata.dataset_id
+        return metadata
 
     # ------------------------------------------------------------------
     # Splits

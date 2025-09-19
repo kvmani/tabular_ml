@@ -29,7 +29,11 @@ def histogram(dataset_id: str, request: schemas.HistogramRequest) -> dict:
 @router.post("/{dataset_id}/scatter")
 def scatter(dataset_id: str, request: schemas.ScatterRequest) -> dict:
     df = _fetch_dataset(dataset_id)
-    for column in (request.x, request.y, request.color) if request.color else (request.x, request.y):
+    for column in (
+        (request.x, request.y, request.color)
+        if request.color
+        else (request.x, request.y)
+    ):
         if column not in df.columns:
             raise HTTPException(status_code=400, detail=f"Column '{column}' not found")
     figure = viz.scatter(df, request.x, request.y, color=request.color)

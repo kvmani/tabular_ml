@@ -1,7 +1,7 @@
 """Evaluation helpers for trained models."""
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional
 
 import numpy as np
 from sklearn import metrics
@@ -16,9 +16,15 @@ def classification_metrics(
 
     result = {
         "accuracy": float(metrics.accuracy_score(y_true, y_pred)),
-        "precision": float(metrics.precision_score(y_true, y_pred, average="weighted", zero_division=0)),
-        "recall": float(metrics.recall_score(y_true, y_pred, average="weighted", zero_division=0)),
-        "f1": float(metrics.f1_score(y_true, y_pred, average="weighted", zero_division=0)),
+        "precision": float(
+            metrics.precision_score(y_true, y_pred, average="weighted", zero_division=0)
+        ),
+        "recall": float(
+            metrics.recall_score(y_true, y_pred, average="weighted", zero_division=0)
+        ),
+        "f1": float(
+            metrics.f1_score(y_true, y_pred, average="weighted", zero_division=0)
+        ),
     }
     unique_classes = np.unique(list(y_true))
     if proba is not None and len(unique_classes) == 2:
@@ -75,7 +81,9 @@ def roc_curve_data(
     }
 
 
-def regression_diagnostics(y_true: Iterable, y_pred: Iterable) -> Dict[str, List[float]]:
+def regression_diagnostics(
+    y_true: Iterable, y_pred: Iterable
+) -> Dict[str, List[float]]:
     """Return data for regression diagnostic plots."""
 
     residuals = np.array(y_true) - np.array(y_pred)

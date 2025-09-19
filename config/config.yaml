@@ -1,0 +1,35 @@
+app:
+  name: "Intranet Tabular ML Studio"
+  environment: "airgapped"
+  host: "0.0.0.0"
+  port: 8000
+  debug: false
+  allow_file_uploads: false
+  max_upload_mb: 20
+  random_seed: 42
+  log_level: "INFO"
+  persist_user_data: false
+security:
+  csp_enabled: true
+  cors_origins: []
+  csrf_protect: true
+ml:
+  default_task: "classification"
+  default_algorithms: ["logistic_regression", "random_forest"]
+  sklearn_onehot_sparse: false
+  n_jobs: -1
+  timeout_sec: 900
+datasets:
+  root_dir: "data/sample_datasets"
+  registry_file: "config/datasets.yaml"
+  synthetic:
+    enable: true
+    per_real_row_multiplier: 10
+    generators:
+      - "smote"
+      - "gaussian_mixture"
+      - "rule_based_noise"
+limits:
+  max_rows_preview: 2000
+  max_rows_train: 1000000
+  max_cols: 200

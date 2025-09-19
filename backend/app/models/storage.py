@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -20,6 +20,7 @@ class DatasetMetadata:
     num_rows: int
     num_columns: int
     columns: List[str]
+    extras: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -37,7 +38,7 @@ class DataSplit:
     y_train: pd.Series
     y_val: pd.Series
     y_test: pd.Series
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 @dataclass
@@ -53,4 +54,4 @@ class ModelArtifact:
     metrics: Dict[str, Any]
     history: List[Dict[str, Any]]
     split_id: str
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))

@@ -1,6 +1,7 @@
 """Model training orchestration."""
 from __future__ import annotations
 
+import importlib.util
 from dataclasses import dataclass
 from time import perf_counter
 from typing import Any, Dict, List, Optional, Tuple
@@ -8,16 +9,33 @@ from uuid import uuid4
 
 import numpy as np
 import pandas as pd
+from packaging import version
+from sklearn import __version__ as sklearn_version
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
+from config import settings
 from backend.app.models.storage import DataSplit, ModelArtifact
 from backend.app.services import evaluation as eval_utils
 from backend.app.services.preprocess import split_dataset
+
+
+def _torch_available() -> bool:
+    """Return True when PyTorch can be imported."""
+
+    return importlib.util.find_spec("torch") is not None
+
+
+TORCH_AVAILABLE = _torch_available()
+
+# Algorithms that benefit from feature scaling
+SCALE_NUMERIC_ALGORITHMS = {"logistic_regression"}
+if TORCH_AVAILABLE:
+    SCALE_NUMERIC_ALGORITHMS.add("neural_network")
 
 
 @dataclass
@@ -32,6 +50,7 @@ class ModelTrainer:
     """Coordinates preprocessing, training, and metric calculation."""
 
     def __init__(self) -> None:
+        self.torch_available = TORCH_AVAILABLE
         self.algorithm_catalog = {
             "logistic_regression": {
                 "label": "Logistic Regression",
@@ -41,26 +60,24 @@ class ModelTrainer:
                 "label": "Random Forest",
                 "task_types": ["classification", "regression"],
             },
-            "xgboost": {
-                "label": "XGBoost",
-                "task_types": ["classification", "regression"],
-            },
-            "neural_network": {
-                "label": "Feedforward Neural Network",
-                "task_types": ["classification", "regression"],
-            },
             "linear_regression": {
                 "label": "Linear Regression",
                 "task_types": ["regression"],
             },
         }
+        if self.torch_available:
+            self.algorithm_catalog["neural_network"] = {
+                "label": "Feedforward Neural Network",
+                "task_types": ["classification", "regression"],
+            }
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
     def available_algorithms(self) -> List[Dict[str, object]]:
         return [
-            {"key": key, **details} for key, details in sorted(self.algorithm_catalog.items())
+            {"key": key, **details}
+            for key, details in sorted(self.algorithm_catalog.items())
         ]
 
     def train(
@@ -100,7 +117,7 @@ class ModelTrainer:
         y_val = split.y_val.reset_index(drop=True)
         y_test = split.y_test.reset_index(drop=True)
 
-        scale_numeric = algorithm in {"logistic_regression", "neural_network"}
+        scale_numeric = algorithm in SCALE_NUMERIC_ALGORITHMS
         preprocessor = self._build_preprocessor(X_train, scale_numeric=scale_numeric)
         preprocessor.fit(X_train)
         X_train_proc = preprocessor.transform(X_train)
@@ -148,6 +165,10 @@ class ModelTrainer:
             }
             metrics = artifact_metrics
         elif algorithm == "neural_network":
+            if not self.torch_available:
+                raise RuntimeError(
+                    "PyTorch is not installed; neural_network is unavailable."
+                )
             artifact_metrics, history = self._train_neural_network(
                 task_type,
                 hyperparameters,
@@ -180,7 +201,9 @@ class ModelTrainer:
         # Evaluate on test data using stored objects
         y_test_pred, proba_test = self._predict(model_object, X_test_proc)
         if task_type == "classification":
-            test_metrics = eval_utils.classification_metrics(y_test, y_test_pred, proba_test)
+            test_metrics = eval_utils.classification_metrics(
+                y_test, y_test_pred, proba_test
+            )
         else:
             test_metrics = eval_utils.regression_metrics(y_test, y_test_pred)
         metrics["test"] = test_metrics
@@ -208,27 +231,39 @@ class ModelTrainer:
         numeric_cols = X.select_dtypes(include=[np.number]).columns.tolist()
         categorical_cols = [col for col in X.columns if col not in numeric_cols]
 
-        numeric_steps: List[Tuple[str, Any]] = [("imputer", SimpleImputer(strategy="median"))]
+        numeric_steps: List[Tuple[str, Any]] = [
+            ("imputer", SimpleImputer(strategy="median"))
+        ]
         if scale_numeric and numeric_cols:
             numeric_steps.append(("scaler", StandardScaler()))
         categorical_steps: List[Tuple[str, Any]] = []
         if categorical_cols:
             categorical_steps = [
                 ("imputer", SimpleImputer(strategy="most_frequent")),
-                (
-                    "encoder",
-                    OneHotEncoder(handle_unknown="ignore", sparse_output=False),
-                ),
+                ("encoder", self._one_hot_encoder()),
             ]
         transformers: List[Tuple[str, Any, List[str]]] = []
         if numeric_cols:
             transformers.append(("numeric", Pipeline(numeric_steps), numeric_cols))
         if categorical_cols:
-            transformers.append(("categorical", Pipeline(categorical_steps), categorical_cols))
+            transformers.append(
+                ("categorical", Pipeline(categorical_steps), categorical_cols)
+            )
         if not transformers:
             # Default passthrough when dataset has no features (edge case)
             transformers.append(("identity", "passthrough", X.columns.tolist()))
         return ColumnTransformer(transformers)
+
+    @staticmethod
+    def _one_hot_encoder() -> OneHotEncoder:
+        if version.parse(sklearn_version) >= version.parse("1.2"):
+            return OneHotEncoder(
+                handle_unknown="ignore",
+                sparse_output=settings.ml.sklearn_onehot_sparse,
+            )
+        return OneHotEncoder(
+            handle_unknown="ignore", sparse=settings.ml.sklearn_onehot_sparse
+        )
 
     def _train_logistic(
         self,
@@ -267,7 +302,11 @@ class ModelTrainer:
         X_val: np.ndarray,
         y_val: pd.Series,
     ) -> Tuple[Dict[str, Dict[str, float]], List[Dict[str, Any]]]:
-        defaults = {"n_estimators": 200, "random_state": 42}
+        defaults = {
+            "n_estimators": 200,
+            "random_state": 42,
+            "n_jobs": settings.ml.n_jobs,
+        }
         defaults.update(hyperparameters)
         if task_type == "classification":
             model = RandomForestClassifier(**defaults)
@@ -279,7 +318,9 @@ class ModelTrainer:
         y_val_pred = model.predict(X_val)
         if task_type == "classification":
             y_val_proba = model.predict_proba(X_val)
-            val_metrics = eval_utils.classification_metrics(y_val, y_val_pred, y_val_proba)
+            val_metrics = eval_utils.classification_metrics(
+                y_val, y_val_pred, y_val_proba
+            )
         else:
             val_metrics = eval_utils.regression_metrics(y_val, y_val_pred)
         history = [
@@ -326,7 +367,9 @@ class ModelTrainer:
         eval_set = [(X_train, y_train_input), (X_val, y_val_input)]
         model.fit(X_train, y_train_input, eval_set=eval_set, verbose=False)
         if task_type == "classification":
-            val_pred = label_encoder.inverse_transform(model.predict(X_val).round().astype(int))
+            val_pred = label_encoder.inverse_transform(
+                model.predict(X_val).round().astype(int)
+            )
             val_proba = model.predict_proba(X_val)
             val_metrics = eval_utils.classification_metrics(y_val, val_pred, val_proba)
         else:
@@ -367,6 +410,10 @@ class ModelTrainer:
         X_val: np.ndarray,
         y_val: pd.Series,
     ) -> Tuple[Dict[str, Dict[str, float]], List[Dict[str, Any]]]:
+        if not TORCH_AVAILABLE:
+            raise RuntimeError(
+                "PyTorch is not available; install torch to enable neural networks."
+            )
         import torch
         from torch import nn
         from torch.utils.data import DataLoader, TensorDataset
@@ -429,13 +476,21 @@ class ModelTrainer:
                 criterion = nn.BCEWithLogitsLoss()
                 output_dim = 1
             else:
-                y_train_tensor = torch.tensor(y_train_encoded, dtype=torch.long, device=device)
-                y_val_tensor = torch.tensor(y_val_encoded, dtype=torch.long, device=device)
+                y_train_tensor = torch.tensor(
+                    y_train_encoded, dtype=torch.long, device=device
+                )
+                y_val_tensor = torch.tensor(
+                    y_val_encoded, dtype=torch.long, device=device
+                )
                 criterion = nn.CrossEntropyLoss()
                 output_dim = num_classes
         else:
-            y_train_tensor = torch.tensor(y_train.values, dtype=torch.float32, device=device)
-            y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32, device=device)
+            y_train_tensor = torch.tensor(
+                y_train.values, dtype=torch.float32, device=device
+            )
+            y_val_tensor = torch.tensor(
+                y_val.values, dtype=torch.float32, device=device
+            )
             criterion = nn.MSELoss()
             output_dim = 1
 
@@ -448,8 +503,9 @@ class ModelTrainer:
         optimizer = torch.optim.Adam(model.parameters(), lr=params["learning_rate"])
 
         train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
-        val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
-        train_loader = DataLoader(train_dataset, batch_size=params["batch_size"], shuffle=True)
+        train_loader = DataLoader(
+            train_dataset, batch_size=params["batch_size"], shuffle=True
+        )
 
         for epoch in range(1, params["epochs"] + 1):
             model.train()
@@ -547,6 +603,10 @@ class ModelTrainer:
                     proba = proba
             return preds, proba
         elif model_object["type"] == "pytorch":
+            if not TORCH_AVAILABLE:
+                raise RuntimeError(
+                    "PyTorch is required to perform predictions for this model."
+                )
             import torch
 
             model.eval()
