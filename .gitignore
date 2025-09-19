@@ -5,3 +5,4 @@ node_modules/
 .venv/
 .DS_Store
 frontend/dist/
+config/config.local.yaml

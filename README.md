@@ -1,108 +1,113 @@
 # Intranet Tabular ML Studio
 
-Intranet Tabular ML Studio is an offline-first machine learning platform for tabular datasets. It pairs a FastAPI backend with a React web client to deliver an end-to-end workflow for analysts and data scientists operating inside air-gapped networks.
+Intranet Tabular ML Studio is an offline-first workflow for exploring, preparing, and modelling tabular datasets. The project is designed for air-gapped deployments: every dependency is vendored locally, configuration lives in YAML, and all state remains in-memory unless explicitly exported.
 
 ## ✨ Highlights
 
-- **Air-gapped friendly** – all dependencies are local Python/Node packages, no external APIs or telemetry.
-- **End-to-end workflow** – upload data, profile, clean, split, train, and evaluate in a minimal-click UI.
-- **Multiple algorithms** – Random Forest, Logistic Regression, XGBoost, Feedforward Neural Networks, and Linear Regression out of the box.
-- **Rich evaluation visuals** – confusion matrices, ROC curves, regression diagnostics, and training history plots rendered with Plotly.
-- **Sample datasets included** – Titanic survival and US Census Income data ship with the platform for instant exploration.
+- **Layered configuration** – defaults live in `config/config.yaml`, operators override via `config.local.yaml`, and environment variables win last.
+- **Expanded dataset catalog** – 22 curated and synthetic CSV files ship in `data/sample_datasets/` with registry metadata in `config/datasets.yaml`.
+- **Synthetic augmentation** – configurable generators (SMOTE-like, Gaussian noise, and rule-based perturbations) expand each dataset ≥10× at runtime.
+- **FastAPI backend + React frontend** – runs without external APIs, telemetry, or CDN assets.
+- **Offline CLI & smoke scripts** – `cli.py` mirrors core REST flows for shell automation and `scripts/smoke_backend.sh` validates a running backend.
+- **Deterministic training** – seeds propagate from configuration so pytest, CLI, and API produce reproducible splits and metrics.
 
-## 🏗 Architecture
+## 🏗 Repository map
 
 ```
-├── backend/                # FastAPI application
-│   ├── app/
-│   │   ├── api/            # Routers and Pydantic schemas
-│   │   ├── core/           # Configuration
-│   │   ├── models/         # Runtime storage models
-│   │   ├── services/       # Data, preprocessing, training, evaluation helpers
-│   │   └── main.py         # FastAPI entrypoint
-├── frontend/               # React + Vite single-page application
-│   └── src/
-│       ├── api/            # REST client helpers
-│       ├── components/     # UI components per workflow stage
-│       ├── App.jsx         # Application shell
-│       └── styles.css      # Tailored styling
-├── data/sample_datasets/   # Curated offline datasets
-├── REQUIREMENTS.txt        # Python dependencies
-└── README.md               # You are here
+├── backend/
+│   └── app/
+│       ├── api/               # FastAPI routers and Pydantic schemas
+│       ├── core/              # Runtime config helpers
+│       ├── models/            # Dataclasses for in-memory storage
+│       ├── services/          # Data loading, preprocessing, augmentation, training
+│       └── main.py            # FastAPI application factory
+├── config/
+│   ├── config.yaml            # Safe defaults committed to source
+│   ├── config.local.yaml      # Operator overrides (gitignored)
+│   └── datasets.yaml          # Dataset registry consumed by backend + CLI
+├── data/sample_datasets/      # Curated CSV files ready for air-gapped use
+├── frontend/                  # React + Vite single page application
+├── scripts/                   # Operational helpers (smoke tests, synthetic generation)
+├── tests/                     # Pytest suite covering config, data, API, and training flows
+├── cli.py                     # Offline orchestration CLI
+├── run_app.py                 # uvicorn bootstrap respecting configuration
+├── Makefile                   # Common developer tasks
+└── REQUIREMENTS.txt           # Python runtime dependencies
 ```
 
-The backend keeps datasets, preprocessing splits, and trained models in-memory for fast experimentation. Plotly figures are generated server-side and transferred to the UI as JSON.
-
-## 📦 Prerequisites
-
-- Python **3.10+**
-- Node.js **18+** (for the front-end tooling)
-- npm or yarn
-- (Optional) A Python virtual environment for isolation
-
-## ⚙️ Backend setup
+## ⚙️ Running the backend
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install -r REQUIREMENTS.txt
-uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+make setup        # create virtualenv and install offline-ready wheels
+make dev          # run FastAPI with auto-reload (uses config host/port)
 ```
 
-The FastAPI docs become available at `http://localhost:8000/docs` for quick inspection. All endpoints are designed to operate without external services.
-
-> **Note:** PyTorch and XGBoost wheels are large. For CPU-only deployments, download the appropriate offline wheels from the official repositories (e.g. `https://download.pytorch.org/whl/cpu`) and cache them inside your package mirror before running the installation command above.
-
-## 💡 Frontend setup
+For a one-shot invocation without reload:
 
 ```bash
-cd frontend
-npm install
-npm run dev -- --host 0.0.0.0 --port 5173
+python run_app.py
 ```
 
-Open `http://localhost:5173` in a browser within the intranet environment. The SPA discovers the backend at `http://localhost:8000` by default; override via the `VITE_API_BASE_URL` environment variable if needed.
+Health is available at `http://<host>:<port>/health`. The `/system/config` endpoint exposes the merged configuration and dataset registry for auditing.
 
-## 🚀 Workflow overview
-
-1. **Upload or load data** – drag in `.csv` or `.xlsx` files or pick one of the bundled datasets. Preview, schema, and descriptive stats appear immediately.
-2. **Preprocess** – detect/remove outliers, impute missing values, craft filters, and produce train/validation/test splits with stratification.
-3. **Explore** – build publication-ready histograms and scatter plots with Plotly.
-4. **Train** – select an algorithm, tune hyperparameters (JSON input for full control), and launch training. Validation/test metrics and per-epoch logs are captured.
-5. **Evaluate** – generate confusion matrices, ROC curves, regression diagnostics, and review metrics for presentation or auditing.
-
-Contextual messaging and help text guide non-expert users throughout the workflow.
-
-## 📊 Sample datasets
-
-| Key            | File                               | Target column | Description                                             |
-|----------------|------------------------------------|---------------|---------------------------------------------------------|
-| `titanic`      | `data/sample_datasets/titanic_sample.csv`       | `Survived`    | Titanic passenger manifest with survival labels.        |
-| `adult_income` | `data/sample_datasets/adult_income_sample.csv`  | `income`      | US Census features to predict high/low income brackets. |
-
-The datasets originate from public Kaggle/UCI sources and were subsampled for rapid iteration.
-
-## 🧪 Testing
-
-The backend ships with pytest-based sanity checks. Execute them after installing requirements:
+## 🧪 Testing & linting
 
 ```bash
-pytest
+make test         # pytest -q
+make lint         # ruff + black --check
+make fmt          # black .
 ```
 
-Front-end unit tests are not included; rely on manual QA in the dev server.
+Pytest exercises configuration layering, dataset registry wiring, preprocessing determinism, algorithm training, and REST smoke flows with uploads disabled.
 
-## 🔒 Air-gapped operations
+## 🧩 Optional dependencies
 
-- No CDN references or telemetry are included; Plotly renders entirely client-side.
-- All datasets reside on disk and are never transmitted outside the network.
-- Dependencies can be pre-fetched into an internal package registry for offline installation.
+The default install path keeps dependencies lightweight for CPU-only environments. Core workflows use scikit-learn models exclusively; installing [PyTorch](https://pytorch.org/) is optional. When `torch` is present the `neural_network` algorithm (CLI alias `nn`) is exposed in the API and CLI. The pytest suite automatically detects the library and runs neural-network coverage only when it is available, so environments without PyTorch remain fully supported.
 
-## 🤝 Contributing
+## 🗂 Dataset registry & synthetic expansion
 
-See [`HOWTOCONTRIBUTE.md`](HOWTOCONTRIBUTE.md) and [`CONTRIBUTE.md`](CONTRIBUTE.md) for development guidelines, branching strategy, and coding standards tailored to multi-agent collaboration.
+Dataset metadata is stored in `config/datasets.yaml`. Each entry defines a key, friendly name, file, target column, description, and task type. Example excerpt:
 
-## 📄 License
+```yaml
+titanic:
+  name: "Titanic Survival"
+  description: "Passenger data with survival labels"
+  file: "titanic_sample.csv"
+  target: "Survived"
+  task: "classification"
+synthetic_sales_forecast:
+  name: "Sales Forecast"
+  description: "Synthetic quarterly revenue regression"
+  file: "synthetic_sales_forecast.csv"
+  target: "quarterly_revenue_k"
+  task: "regression"
+```
 
-Distributed under the terms of the included `LICENSE` file.
+When a dataset is loaded, the backend automatically materialises an augmented sibling dataset (respecting `datasets.synthetic` settings) and tracks provenance via metadata extras. `scripts/gen_synthetic_all.py` shows how to invoke the augmentation pipeline without persisting data.
+
+## 🛠 CLI usage
+
+```bash
+python cli.py datasets list
+python cli.py datasets preview --name titanic --rows 20
+python cli.py train --name titanic --algo logreg --task classification
+python cli.py evaluate --run-id <model_id>
+python cli.py info
+```
+
+The CLI operates entirely offline using the same services as the API. Runs triggered through the CLI populate the in-memory `run_tracker`, which also backs the `/runs/last` endpoint.
+
+## 🔐 Air-gapped considerations
+
+- No CDN links or telemetry endpoints are referenced in the frontend; all assets are bundled locally.
+- File uploads are feature-flagged (`app.allow_file_uploads`). When disabled (the default), the backend never imports `python-multipart` and the upload route is omitted entirely.
+- Logging defaults to stdout with operator-configurable level; no files are written unless explicitly configured.
+- Limits (`limits.max_rows_preview`, `limits.max_rows_train`, `limits.max_cols`) are enforced on preview and training routes to guard resources.
+
+## 📚 Additional docs
+
+- [`OFFLINE_OPERATIONS.md`](OFFLINE_OPERATIONS.md) – end-to-end bootstrap guidance for air-gapped environments.
+- [`BACKWARDS_COMPAT.md`](BACKWARDS_COMPAT.md) – notes on Pydantic v1/v2 and scikit-learn 1.1–1.5 compatibility flags.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) – coding standards, testing expectations, and commit guidance.
+
+Happy hacking inside the air-gap! 👩‍💻

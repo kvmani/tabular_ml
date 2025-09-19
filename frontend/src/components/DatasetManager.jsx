@@ -72,7 +72,8 @@ export default function DatasetManager({
   summary,
   columnsInfo,
   loading,
-  onRefresh
+  onRefresh,
+  allowUploads
 }) {
   const [file, setFile] = useState(null);
   const [name, setName] = useState('');
@@ -80,7 +81,7 @@ export default function DatasetManager({
 
   const handleUpload = async (event) => {
     event.preventDefault();
-    if (!file) return;
+    if (!allowUploads || !file) return;
     await onUpload(file, name, description);
     setFile(null);
     setName('');
@@ -115,19 +116,29 @@ export default function DatasetManager({
         <div className="dataset-actions">
           <form className="upload-form" onSubmit={handleUpload}>
             <h3>Upload CSV/XLSX</h3>
-            <input type="file" accept=".csv,.xlsx,.xls" onChange={(event) => setFile(event.target.files[0])} />
+            {!allowUploads && (
+              <p className="muted">Uploads are disabled in this deployment.</p>
+            )}
+            <input
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              onChange={(event) => setFile(event.target.files[0])}
+              disabled={!allowUploads || loading}
+            />
             <input
               type="text"
               placeholder="Display name"
               value={name}
               onChange={(event) => setName(event.target.value)}
+              disabled={!allowUploads || loading}
             />
             <textarea
               placeholder="Description"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
+              disabled={!allowUploads || loading}
             />
-            <button type="submit" disabled={!file || loading}>
+            <button type="submit" disabled={!allowUploads || !file || loading}>
               Upload dataset
             </button>
           </form>
@@ -142,7 +153,7 @@ export default function DatasetManager({
                   onClick={() => onSampleLoad(sample.key)}
                   disabled={loading}
                 >
-                  {sample.name}
+                  {sample.name} ({sample.task})
                 </button>
               ))}
             </div>

@@ -98,6 +98,14 @@ export async function listAlgorithms() {
   return request('/model/algorithms');
 }
 
+export async function getSystemConfig() {
+  return request('/system/config');
+}
+
+export async function getHealth() {
+  return request('/health');
+}
+
 export async function trainModel(payload) {
   return request('/model/train', {
     method: 'POST',

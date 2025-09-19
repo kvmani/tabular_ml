@@ -5,18 +5,23 @@ from typing import Dict, Optional
 
 from fastapi import APIRouter, HTTPException
 
+from config import settings
+
 from backend.app.api import schemas
 from backend.app.services import evaluation as eval_utils
 from backend.app.services import visualization
 from backend.app.services.data_manager import data_manager
 from backend.app.services.model_training import model_trainer
+from backend.app.services.run_tracker import RunSummary, run_tracker
 
 router = APIRouter(prefix="/model", tags=["modeling"])
 
 
 @router.get("/algorithms", response_model=schemas.AlgorithmListResponse)
 def algorithms() -> schemas.AlgorithmListResponse:
-    algos = [schemas.AlgorithmModel(**algo) for algo in model_trainer.available_algorithms()]
+    algos = [
+        schemas.AlgorithmModel(**algo) for algo in model_trainer.available_algorithms()
+    ]
     return schemas.AlgorithmListResponse(algorithms=algos)
 
 
@@ -43,6 +48,11 @@ def train(request: schemas.TrainRequest) -> schemas.TrainingResponse:
         df = data_manager.get_dataset(request.dataset_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if df.shape[0] > settings.limits.max_rows_train:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Dataset has {df.shape[0]} rows which exceeds max_rows_train={settings.limits.max_rows_train}",
+        )
     split = None
     if request.split_id:
         try:
@@ -60,6 +70,18 @@ def train(request: schemas.TrainRequest) -> schemas.TrainingResponse:
     )
     data_manager.store_split(result.split)
     data_manager.store_model(result.artifact)
+    metadata = data_manager.get_metadata(request.dataset_id)
+    run_tracker.record(
+        RunSummary(
+            run_id=result.artifact.model_id,
+            dataset_id=request.dataset_id,
+            dataset_name=metadata.name,
+            algorithm=request.algorithm,
+            task_type=request.task_type,
+            metrics=result.artifact.metrics,
+            created_at=result.artifact.created_at,
+        )
+    )
     return schemas.TrainingResponse(
         model_id=result.artifact.model_id,
         metrics=result.artifact.metrics,
@@ -77,7 +99,9 @@ def evaluate(request: schemas.EvaluationRequest) -> schemas.EvaluationResponse:
     try:
         split = data_manager.get_split(model_artifact.split_id)
     except KeyError as exc:
-        raise HTTPException(status_code=404, detail="Associated data split not found") from exc
+        raise HTTPException(
+            status_code=404, detail="Associated data split not found"
+        ) from exc
 
     X_test = split.X_test.reset_index(drop=True)
     y_test = split.y_test.reset_index(drop=True)

@@ -36,8 +36,12 @@ SUPPORTED_OPERATORS = {
     "gte": lambda series, value: series >= value,
     "lt": lambda series, value: series < value,
     "lte": lambda series, value: series <= value,
-    "contains": lambda series, value: series.astype(str).str.contains(str(value), na=False),
-    "in": lambda series, value: series.isin(value if isinstance(value, Iterable) else [value]),
+    "contains": lambda series, value: series.astype(str).str.contains(
+        str(value), na=False
+    ),
+    "in": lambda series, value: series.isin(
+        value if isinstance(value, Iterable) else [value]
+    ),
 }
 
 
@@ -80,7 +84,6 @@ def remove_outliers(
     report = detect_outliers(df, columns=columns, z_threshold=z_threshold)
     if report.total_outliers == 0:
         return df.copy()
-    mask = df.index.isin(report.sample_indices)
     # Remove all rows that exceed the threshold (recompute mask accurately)
     numeric_columns = report.inspected_columns
     z_scores = pd.DataFrame(index=df.index)

@@ -36,6 +36,8 @@ class SampleDatasetModel(BaseModel):
     name: str
     description: str
     target_column: str
+    task: str
+    synthetic_available: bool
 
 
 class SampleDatasetListResponse(BaseModel):
@@ -72,7 +74,9 @@ class OutlierRemovalResponse(BaseModel):
 
 
 class ImputationRequest(BaseModel):
-    strategy: str = Field("mean", description="Imputation strategy such as mean/median/most_frequent")
+    strategy: str = Field(
+        "mean", description="Imputation strategy such as mean/median/most_frequent"
+    )
     columns: Optional[List[str]] = None
     fill_value: Optional[float] = None
 
@@ -83,7 +87,9 @@ class ImputationResponse(BaseModel):
 
 class FilterRule(BaseModel):
     column: str
-    operator: str = Field("eq", description="Comparison operator (eq, ne, gt, gte, lt, lte, contains, in)")
+    operator: str = Field(
+        "eq", description="Comparison operator (eq, ne, gt, gte, lt, lte, contains, in)"
+    )
     value: Any
 
 
@@ -97,7 +103,7 @@ class FilterResponse(BaseModel):
 
 class SplitRequest(BaseModel):
     target_column: str
-    task_type: str = Field(..., regex="^(classification|regression)$")
+    task_type: str = Field(..., pattern=r"^(classification|regression)$")
     test_size: float = Field(0.2, gt=0, lt=0.8)
     val_size: float = Field(0.2, gt=0, lt=0.8)
     random_state: int = 42
@@ -129,7 +135,7 @@ class AlgorithmListResponse(BaseModel):
 class TrainRequest(BaseModel):
     dataset_id: str
     target_column: str
-    task_type: str = Field(..., regex="^(classification|regression)$")
+    task_type: str = Field(..., pattern=r"^(classification|regression)$")
     algorithm: str
     split_id: Optional[str] = None
     hyperparameters: Dict[str, Any] = Field(default_factory=dict)

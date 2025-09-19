@@ -3,9 +3,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
-from backend.app.core.config import settings
+from config import load_dataset_registry
+
+from backend.app.core.config import DATA_DIR
 
 
 @dataclass(frozen=True)
@@ -14,35 +16,28 @@ class SampleDataset:
 
     key: str
     name: str
-    filename: str
     description: str
     target_column: str
-
-    @property
-    def path(self) -> Path:
-        return settings.SAMPLE_DATA_DIR / self.filename
+    task: str
+    path: Path
 
 
 def load_registry() -> Dict[str, SampleDataset]:
     """Return a dictionary of available sample datasets keyed by identifier."""
 
-    datasets: List[SampleDataset] = [
-        SampleDataset(
-            key="titanic",
-            name="Titanic Survival",
-            filename="titanic_sample.csv",
-            description="Passenger information from the Titanic voyage with survival labels.",
-            target_column="Survived",
-        ),
-        SampleDataset(
-            key="adult_income",
-            name="US Census Income",
-            filename="adult_income_sample.csv",
-            description="Census features for predicting whether annual income exceeds $50K.",
-            target_column="income",
-        ),
-    ]
-    return {dataset.key: dataset for dataset in datasets}
+    registry = load_dataset_registry()
+    datasets: Dict[str, SampleDataset] = {}
+    for key, entry in registry.items():
+        path = (DATA_DIR / entry.file).resolve()
+        datasets[key] = SampleDataset(
+            key=key,
+            name=entry.name or key.replace("_", " ").title(),
+            description=entry.description or "Synthetic offline dataset",
+            target_column=entry.target,
+            task=entry.task,
+            path=path,
+        )
+    return datasets
 
 
 SAMPLE_DATASETS = load_registry()
