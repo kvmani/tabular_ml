@@ -15,6 +15,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
@@ -33,9 +34,7 @@ def _torch_available() -> bool:
 TORCH_AVAILABLE = _torch_available()
 
 # Algorithms that benefit from feature scaling
-SCALE_NUMERIC_ALGORITHMS = {"logistic_regression"}
-if TORCH_AVAILABLE:
-    SCALE_NUMERIC_ALGORITHMS.add("neural_network")
+SCALE_NUMERIC_ALGORITHMS = {"logistic_regression", "neural_network"}
 
 
 @dataclass
@@ -65,11 +64,14 @@ class ModelTrainer:
                 "task_types": ["regression"],
             },
         }
-        if self.torch_available:
-            self.algorithm_catalog["neural_network"] = {
-                "label": "Feedforward Neural Network",
-                "task_types": ["classification", "regression"],
-            }
+        self.algorithm_catalog["neural_network"] = {
+            "label": (
+                "Feedforward Neural Network"
+                if self.torch_available
+                else "Feedforward Neural Network (sklearn)"
+            ),
+            "task_types": ["classification", "regression"],
+        }
 
     # ------------------------------------------------------------------
     # Public API
@@ -165,11 +167,7 @@ class ModelTrainer:
             }
             metrics = artifact_metrics
         elif algorithm == "neural_network":
-            if not self.torch_available:
-                raise RuntimeError(
-                    "PyTorch is not installed; neural_network is unavailable."
-                )
-            artifact_metrics, history = self._train_neural_network(
+            artifact_metrics, history, model_type = self._train_neural_network(
                 task_type,
                 hyperparameters,
                 X_train_proc,
@@ -178,12 +176,13 @@ class ModelTrainer:
                 y_val,
             )
             model_object = {
-                "type": "pytorch",
+                "type": model_type,
                 "model": artifact_metrics.pop("model"),
                 "preprocessor": preprocessor,
                 "label_encoder": artifact_metrics.pop("label_encoder", None),
-                "input_dim": X_train_proc.shape[1],
             }
+            if model_type == "pytorch":
+                model_object["input_dim"] = X_train_proc.shape[1]
             metrics = artifact_metrics
         elif algorithm == "linear_regression":
             artifact_metrics, history = self._train_linear_regression(
@@ -407,10 +406,15 @@ class ModelTrainer:
         y_train: pd.Series,
         X_val: np.ndarray,
         y_val: pd.Series,
-    ) -> Tuple[Dict[str, Dict[str, float]], List[Dict[str, Any]]]:
+    ) -> Tuple[Dict[str, Dict[str, float]], List[Dict[str, Any]], str]:
         if not TORCH_AVAILABLE:
-            raise RuntimeError(
-                "PyTorch is not available; install torch to enable neural networks."
+            return self._train_neural_network_sklearn(
+                task_type,
+                hyperparameters,
+                X_train,
+                y_train,
+                X_val,
+                y_val,
             )
         import torch
         from torch import nn
@@ -555,7 +559,68 @@ class ModelTrainer:
         result = {"validation": history[-1]["metrics"], "model": model}
         if label_encoder is not None:
             result["label_encoder"] = label_encoder
-        return result, history
+        return result, history, "pytorch"
+
+    def _train_neural_network_sklearn(
+        self,
+        task_type: str,
+        hyperparameters: Dict[str, Any],
+        X_train: np.ndarray,
+        y_train: pd.Series,
+        X_val: np.ndarray,
+        y_val: pd.Series,
+    ) -> Tuple[Dict[str, Dict[str, float]], List[Dict[str, Any]], str]:
+        params: Dict[str, Any]
+        history: List[Dict[str, Any]]
+        start = perf_counter()
+        if task_type == "classification":
+            params = {
+                "hidden_layer_sizes": (64, 32),
+                "activation": "relu",
+                "solver": "adam",
+                "max_iter": 300,
+                "random_state": 42,
+                "early_stopping": True,
+            }
+            params.update(hyperparameters)
+            model = MLPClassifier(**params)
+            model.fit(X_train, y_train)
+            duration = perf_counter() - start
+            y_val_pred = model.predict(X_val)
+            y_val_proba = model.predict_proba(X_val)
+            val_metrics = eval_utils.classification_metrics(
+                y_val, y_val_pred, y_val_proba
+            )
+            history = [
+                {
+                    "stage": "fit",
+                    "elapsed_seconds": duration,
+                    "metrics": val_metrics,
+                }
+            ]
+        else:
+            params = {
+                "hidden_layer_sizes": (64, 32),
+                "activation": "relu",
+                "solver": "adam",
+                "max_iter": 300,
+                "random_state": 42,
+                "early_stopping": True,
+            }
+            params.update(hyperparameters)
+            model = MLPRegressor(**params)
+            model.fit(X_train, y_train)
+            duration = perf_counter() - start
+            y_val_pred = model.predict(X_val)
+            val_metrics = eval_utils.regression_metrics(y_val, y_val_pred)
+            history = [
+                {
+                    "stage": "fit",
+                    "elapsed_seconds": duration,
+                    "metrics": val_metrics,
+                }
+            ]
+        return {"validation": val_metrics, "model": model}, history, "sklearn"
 
     def _train_linear_regression(
         self,

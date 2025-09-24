@@ -76,9 +76,7 @@ def load_settings() -> Settings:
     return settings
 
 
-@lru_cache(maxsize=1)
-def load_dataset_registry(settings: Settings | None = None) -> DatasetRegistry:
-    cfg = settings or load_settings()
+def _load_dataset_registry_for(cfg: Settings) -> DatasetRegistry:
     registry_path = Path(cfg.datasets.registry_file)
     if not registry_path.is_absolute():
         registry_path = PROJECT_ROOT / registry_path
@@ -98,6 +96,17 @@ def load_dataset_registry(settings: Settings | None = None) -> DatasetRegistry:
             raise ValueError(f"Registry entry for {key} must be a mapping")
         registry[key] = DatasetEntry.model_validate(value)
     return registry
+
+
+@lru_cache(maxsize=1)
+def _cached_dataset_registry() -> DatasetRegistry:
+    return _load_dataset_registry_for(load_settings())
+
+
+def load_dataset_registry(settings: Settings | None = None) -> DatasetRegistry:
+    if settings is None:
+        return _cached_dataset_registry()
+    return _load_dataset_registry_for(settings)
 
 
 settings = load_settings()

@@ -13,9 +13,7 @@ export default function ModelTrainer({
   const [selectedAlgorithm, setSelectedAlgorithm] = useState('logistic_regression');
   const [targetColumn, setTargetColumn] = useState('');
   const [taskType, setTaskType] = useState('classification');
-  const [hyperparams, setHyperparams] = useState('{
-  "random_state": 42
-}');
+  const [hyperparams, setHyperparams] = useState('{"random_state": 42}');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -75,21 +73,37 @@ export default function ModelTrainer({
       <div className="card-body model-grid">
         <div>
           <h3>Configuration</h3>
-          <label>Algorithm</label>
-          <select value={selectedAlgorithm} onChange={(event) => setSelectedAlgorithm(event.target.value)} disabled={disabled}>
+          <label htmlFor="algorithm-select">Algorithm</label>
+          <select
+            id="algorithm-select"
+            value={selectedAlgorithm}
+            onChange={(event) => setSelectedAlgorithm(event.target.value)}
+            disabled={disabled}
+          >
             {algorithms.map((algo) => (
               <option key={algo.key} value={algo.key}>
                 {algo.label}
               </option>
             ))}
           </select>
-          <label>Task type</label>
-          <select value={taskType} onChange={(event) => setTaskType(event.target.value)} disabled={disabled}>
+          <label htmlFor="task-type-select">Task type</label>
+          <select
+            id="task-type-select"
+            value={taskType}
+            onChange={(event) => setTaskType(event.target.value)}
+            disabled={disabled}
+          >
             <option value="classification">Classification</option>
             <option value="regression">Regression</option>
           </select>
-          <label>Target column</label>
-          <select value={targetColumn} data-testid="train-target" onChange={(event) => setTargetColumn(event.target.value)} disabled={disabled}>
+          <label htmlFor="target-column-select">Target column</label>
+          <select
+            id="target-column-select"
+            value={targetColumn}
+            data-testid="train-target"
+            onChange={(event) => setTargetColumn(event.target.value)}
+            disabled={disabled}
+          >
             <option value="">-- select target --</option>
             {columns.map((column) => (
               <option key={column} value={column}>

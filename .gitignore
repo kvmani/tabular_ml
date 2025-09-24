@@ -23,3 +23,7 @@ artifacts/*
 !artifacts/ui/
 !artifacts/ui/.gitkeep
 
+tests/ui/artifacts/
+*.png
+*.zip
+
