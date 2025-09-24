@@ -12,6 +12,14 @@ from config import settings
 from backend.app.core.security import CSPMiddleware, CSRFMiddleware
 from backend.app.api.routes import data, modeling, preprocess, system, visualization
 
+DEFAULT_DEV_CORS_ORIGINS = (
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    # Vite's preview server defaults to 4173 which mirrors production builds.
+    "http://127.0.0.1:4173",
+    "http://localhost:4173",
+)
+
 
 logging.basicConfig(
     level=getattr(logging, settings.app.log_level.upper(), logging.INFO),
@@ -21,8 +29,17 @@ logging.basicConfig(
 
 
 def _cors_origins() -> List[str]:
+    """Return the configured CORS origins with sensible local fallbacks."""
+
     origins = settings.security.cors_origins
-    return origins if origins else []
+    if origins:
+        return origins
+    # During local development the frontend typically runs on Vite's dev server
+    # (port 5173) or preview server (port 4173). When the configuration does not
+    # explicitly specify allowed origins we optimistically allow these common
+    # localhost URLs so the UI can communicate with the backend without manual
+    # configuration tweaks.
+    return list(DEFAULT_DEV_CORS_ORIGINS)
 
 
 def create_app() -> FastAPI:
