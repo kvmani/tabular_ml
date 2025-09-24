@@ -86,7 +86,11 @@ def dataset_summary(dataset_id: str) -> schemas.SummaryResponse:
         df = data_manager.get_dataset(dataset_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    describe_df = df.describe(include="all", datetime_is_numeric=True).transpose()
+    try:
+        describe_df = df.describe(include="all", datetime_is_numeric=True)
+    except TypeError:
+        describe_df = df.describe(include="all")
+    describe_df = describe_df.transpose()
     summary: Dict[str, Dict[str, Any]] = describe_df.replace({np.nan: None}).to_dict(
         orient="index"
     )

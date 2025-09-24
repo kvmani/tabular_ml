@@ -4,7 +4,7 @@ An offline-first FastAPI + React workspace for exploring and modelling tabular d
 
 ## Highlights
 
-- **Pydantic v2 + scikit-learn 1.1–1.5 compatibility** with adaptive OneHotEncoder handling.
+- **Pydantic v2 + scikit-learn 1.1â€“1.5 compatibility** with adaptive OneHotEncoder handling.
 - **Layered YAML configuration** (defaults, local overrides, env vars) merged via `config.load_settings()` and exposed through `/system/config` and the UI panel.
 - **Security by default:** CSP headers, CSRF protection, optional file uploads, in-memory run tracking only.
 - **Curated dataset catalog** (1,000+ row Titanic & Adult samples plus synthetics) with a regeneration script.
@@ -42,8 +42,8 @@ The React UI surfaces the effective configuration and dataset registry in the **
 
 ## Data catalog
 
-- `data/sample_datasets/titanic_sample.csv` – 1,309 rows from OpenML Titanics.
-- `data/sample_datasets/adult_income_sample.csv` – 1,000 rows from the UCI Adult income dataset.
+- `data/sample_datasets/titanic_sample.csv` â€“ 1,309 rows from OpenML Titanics.
+- `data/sample_datasets/adult_income_sample.csv` â€“ 1,000 rows from the UCI Adult income dataset.
 - Synthetic regression/classification datasets with augmentation metadata.
 
 Regenerate or refresh samples with:
@@ -82,6 +82,24 @@ make fmt               # black .
 ```
 
 Pytest coverage includes configuration layering, dataset registry wiring, preprocessing, algorithm training, CLI commands, API smoke tests, and an integration boot of `run_app.py`. Playwright walks the UI flow end-to-end and stores screenshots in `artifacts/ui/` for auditing.
+
+### UI regression workflow
+
+The full end-to-end browser flow lives in `tests/ui/test_tabular_ml.py`. It boots both servers, fabricates a small CSV, uploads it through the UI, performs preprocessing, trains Random Forest and neural network models, evaluates results, and captures screenshots for each major stage. Run it locally with:
+
+```bash
+pytest tests/ui/test_tabular_ml.py -s
+```
+
+Screenshots are written to `tests/ui/artifacts/` (gitignored by default). Compress them afterwards for sharing, e.g.:
+
+```bash
+cd tests/ui
+zip -r artifacts.zip artifacts
+```
+
+Attach the resulting `artifacts.zip` out of band (it will not appear in git history) when you need to share visual evidence of the UI run.
+
 
 ## Offline operations
 

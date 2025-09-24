@@ -52,7 +52,6 @@ export default function EvaluationPanel({ modelId, metrics, evaluation, onEvalua
               layout={{ ...evaluation.training_history.layout, autosize: true }}
               style={{ width: '100%', height: '100%' }}
             />
-            </div>
           ) : (
             <p className="muted">Evaluate the model to visualise training progress.</p>
           )}
@@ -78,7 +77,8 @@ export default function EvaluationPanel({ modelId, metrics, evaluation, onEvalua
               data={evaluation.roc_curve.data}
               layout={{ ...evaluation.roc_curve.layout, autosize: true }}
               style={{ width: '100%', height: '100%' }}
-            />\r\n            </div>\r\n          ) : (
+            />
+          ) : (
             <p className="muted">Available for binary classifiers with probability outputs.</p>
           )}
         </div>
