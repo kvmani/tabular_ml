@@ -16,6 +16,25 @@ def _csrf_token():
     return token, response
 
 
+def test_default_dataset_preloaded():
+    response = client.get("/data/datasets")
+    assert response.status_code == 200
+    payload = response.json()
+    default_id = payload.get("default_dataset_id")
+    assert default_id, "default_dataset_id should be populated"
+    dataset_ids = {dataset["dataset_id"] for dataset in payload["datasets"]}
+    assert default_id in dataset_ids
+
+    preview = client.get(f"/data/{default_id}/preview")
+    summary = client.get(f"/data/{default_id}/summary")
+    columns = client.get(f"/data/{default_id}/columns")
+
+    assert preview.status_code == 200
+    assert summary.status_code == 200
+    assert columns.status_code == 200
+    assert preview.json()["data"], "default dataset preview should not be empty"
+
+
 def test_health_and_algorithms():
     csrf_token, response = _csrf_token()
     payload = response.json()
@@ -24,12 +43,15 @@ def test_health_and_algorithms():
 
     algos = client.get("/model/algorithms")
     assert algos.status_code == 200
-    algo_keys = {a["key"] for a in algos.json()["algorithms"]}
+    algorithms = algos.json()["algorithms"]
+    algo_keys = {a["key"] for a in algorithms}
     assert "random_forest" in algo_keys
+    neural = next((a for a in algorithms if a["key"] == "neural_network"), None)
     if model_trainer.torch_available:
-        assert "neural_network" in algo_keys
+        assert neural is not None
     else:
-        assert "neural_network" not in algo_keys
+        assert neural is not None
+        assert "sklearn" in neural["label"].lower()
 
     sample_resp = client.post(
         "/data/samples/titanic",

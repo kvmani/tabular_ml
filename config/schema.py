@@ -14,6 +14,7 @@ class AppCfg(BaseModel):
     port: int = Field(ge=1, le=65535)
     debug: bool
     allow_file_uploads: bool
+    default_sample_dataset: Optional[str] = None
     max_upload_mb: int = Field(gt=0)
     random_seed: int
     log_level: str

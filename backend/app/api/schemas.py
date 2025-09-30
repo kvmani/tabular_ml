@@ -25,6 +25,7 @@ class DatasetMetadataModel(BaseModel):
 
 class DatasetListResponse(BaseModel):
     datasets: List[DatasetMetadataModel]
+    default_dataset_id: Optional[str] = None
 
 
 class UploadResponse(BaseModel):
