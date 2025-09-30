@@ -47,16 +47,30 @@ export default function App() {
   const [evaluation, setEvaluation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [systemConfig, setSystemConfig] = useState(null);
-  const [allowUploads, setAllowUploads] = useState(false);
+  const [allowUploads, setAllowUploads] = useState(true);
 
   const { message, variant, notify } = useNotification();
 
   const refreshDatasets = async (selectId) => {
     const response = await listDatasets();
-    setDatasets(response.datasets || []);
-    if (selectId) {
-      setCurrentDatasetId(selectId);
-    }
+    const nextDatasets = response.datasets || [];
+    setDatasets(nextDatasets);
+    setCurrentDatasetId((prevId) => {
+      if (selectId) {
+        return selectId;
+      }
+      const prevStillExists = nextDatasets.some(
+        (dataset) => dataset.dataset_id === prevId
+      );
+      if (prevId && prevStillExists) {
+        return prevId;
+      }
+      if (response.default_dataset_id) {
+        return response.default_dataset_id;
+      }
+      return nextDatasets.length > 0 ? nextDatasets[0].dataset_id : '';
+    });
+    return response;
   };
 
   const refreshDatasetDetails = async (datasetId) => {
@@ -96,7 +110,16 @@ export default function App() {
         setSampleDatasets(samplesResponse.samples || []);
         setAlgorithms(algorithmsResponse.algorithms || []);
         setSystemConfig(configResponse);
-        setAllowUploads(Boolean(configResponse?.settings?.app?.allow_file_uploads));
+        if (configResponse?.settings?.app?.allow_file_uploads === false) {
+          setAllowUploads(false);
+        } else {
+          setAllowUploads(true);
+        }
+        if (datasetsResponse.default_dataset_id) {
+          setCurrentDatasetId(datasetsResponse.default_dataset_id);
+        } else if (datasetsResponse.datasets?.length) {
+          setCurrentDatasetId(datasetsResponse.datasets[0].dataset_id);
+        }
       } catch (error) {
         notify(error.message, 'error');
       }

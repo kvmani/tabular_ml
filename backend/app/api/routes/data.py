@@ -19,7 +19,9 @@ router = APIRouter(prefix="/data", tags=["data"])
 @router.get("/datasets", response_model=schemas.DatasetListResponse)
 def list_datasets() -> schemas.DatasetListResponse:
     datasets = data_manager.list_datasets()
-    return schemas.DatasetListResponse(datasets=datasets)
+    return schemas.DatasetListResponse(
+        datasets=datasets, default_dataset_id=data_manager.default_dataset_id
+    )
 
 
 @router.get("/samples", response_model=schemas.SampleDatasetListResponse)

@@ -1,6 +1,7 @@
 """Data management utilities for the ML platform."""
 from __future__ import annotations
 
+import logging
 from dataclasses import asdict
 from datetime import datetime, timezone
 from threading import Lock
@@ -27,6 +28,44 @@ class DataManager:
         self._lock = Lock()
         self.sample_datasets = SAMPLE_DATASETS
         self.synthetic_cfg = settings.datasets.synthetic
+        self.default_dataset_id: Optional[str] = None
+
+        self._preload_default_dataset()
+
+    def _preload_default_dataset(self) -> None:
+        """Load the configured default sample dataset if one is provided."""
+
+        default_key = getattr(settings.app, "default_sample_dataset", None)
+        if not default_key:
+            return
+        if default_key not in self.sample_datasets:
+            logging.getLogger(__name__).warning(
+                "Default sample dataset '%s' is not present in the registry.",
+                default_key,
+            )
+            return
+        try:
+            metadata = self.load_sample_dataset(default_key)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logging.getLogger(__name__).warning(
+                "Failed to preload default dataset '%s': %s", default_key, exc
+            )
+            return
+        with self._lock:
+            if metadata.dataset_id in self._datasets:
+                self.default_dataset_id = metadata.dataset_id
+
+    def ensure_default_dataset(self) -> None:
+        """Ensure the default dataset is available after state resets."""
+
+        default_key = getattr(settings.app, "default_sample_dataset", None)
+        if not default_key:
+            return
+        with self._lock:
+            if self.default_dataset_id and self.default_dataset_id in self._datasets:
+                return
+            self.default_dataset_id = None
+        self._preload_default_dataset()
 
     # ------------------------------------------------------------------
     # Dataset operations
@@ -63,6 +102,7 @@ class DataManager:
     def list_datasets(self) -> List[Dict[str, object]]:
         """Return metadata for all stored datasets."""
 
+        self.ensure_default_dataset()
         with self._lock:
             return [asdict(meta) for meta in self._metadata.values()]
 

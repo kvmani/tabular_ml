@@ -115,13 +115,16 @@ export default function DatasetManager({
         </div>
         <div className="dataset-actions">
           <form className="upload-form" onSubmit={handleUpload}>
-            <h3>Upload CSV/XLSX</h3>
+            <h3>Upload data file</h3>
+            {allowUploads && (
+              <p className="muted">Supported formats: CSV, TSV, Parquet, XLSX.</p>
+            )}
             {!allowUploads && (
               <p className="muted">Uploads are disabled in this deployment.</p>
             )}
             <input
               type="file"
-              accept=".csv,.xlsx,.xls"
+              accept=".csv,.tsv,.parquet,.xlsx,.xls"
               onChange={(event) => setFile(event.target.files[0])}
               disabled={!allowUploads || loading}
             />
