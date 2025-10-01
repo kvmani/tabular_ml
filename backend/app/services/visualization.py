@@ -3,9 +3,17 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
+import json
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.utils import PlotlyJSONEncoder
+
+
+def _to_plotly_json(fig: go.Figure) -> Dict[str, object]:
+    """Return a JSON-serialisable representation of a Plotly figure."""
+    return json.loads(json.dumps(fig, cls=PlotlyJSONEncoder))
 
 
 COLOR_PALETTE = px.colors.qualitative.D3
@@ -14,7 +22,7 @@ COLOR_PALETTE = px.colors.qualitative.D3
 def histogram(df: pd.DataFrame, column: str) -> Dict[str, object]:
     fig = px.histogram(df, x=column, nbins=30, title=f"Distribution of {column}")
     fig.update_layout(template="plotly_white", bargap=0.1)
-    return fig.to_dict()
+    return _to_plotly_json(fig)
 
 
 def scatter(
@@ -25,7 +33,7 @@ def scatter(
 ) -> Dict[str, object]:
     fig = px.scatter(df, x=x, y=y, color=color, title=f"Scatter: {x} vs {y}")
     fig.update_layout(template="plotly_white")
-    return fig.to_dict()
+    return _to_plotly_json(fig)
 
 
 def training_history(
@@ -36,7 +44,7 @@ def training_history(
         fig.update_layout(
             title="No training history available", template="plotly_white"
         )
-        return fig.to_dict()
+        return _to_plotly_json(fig)
     epochs = [entry.get("epoch", idx + 1) for idx, entry in enumerate(history)]
     fig = go.Figure()
     if any("train_loss" in entry for entry in history):
@@ -86,7 +94,7 @@ def training_history(
         yaxis_title="Loss",
         template="plotly_white",
     )
-    return fig.to_dict()
+    return _to_plotly_json(fig)
 
 
 def confusion_matrix_plot(data: Dict[str, object]) -> Dict[str, object]:
@@ -107,7 +115,7 @@ def confusion_matrix_plot(data: Dict[str, object]) -> Dict[str, object]:
         yaxis_title="Actual",
         template="plotly_white",
     )
-    return fig.to_dict()
+    return _to_plotly_json(fig)
 
 
 def roc_curve_plot(
@@ -130,7 +138,7 @@ def roc_curve_plot(
         yaxis_title="True Positive Rate",
         template="plotly_white",
     )
-    return fig.to_dict()
+    return _to_plotly_json(fig)
 
 
 def regression_comparison_plot(data: Dict[str, List[float]]) -> Dict[str, object]:
@@ -141,7 +149,7 @@ def regression_comparison_plot(data: Dict[str, List[float]]) -> Dict[str, object
         fig.update_layout(
             title="Actual vs Predicted (no data)", template="plotly_white"
         )
-        return fig.to_dict()
+        return _to_plotly_json(fig)
     fig = px.scatter(
         x=actual,
         y=predicted,
@@ -159,7 +167,7 @@ def regression_comparison_plot(data: Dict[str, List[float]]) -> Dict[str, object
         )
     )
     fig.update_layout(template="plotly_white")
-    return fig.to_dict()
+    return _to_plotly_json(fig)
 
 
 def residuals_plot(data: Dict[str, List[float]]) -> Dict[str, object]:
@@ -168,7 +176,7 @@ def residuals_plot(data: Dict[str, List[float]]) -> Dict[str, object]:
     if not predicted or not residuals:
         fig = go.Figure()
         fig.update_layout(title="Residual Plot (no data)", template="plotly_white")
-        return fig.to_dict()
+        return _to_plotly_json(fig)
     fig = px.scatter(
         x=predicted,
         y=residuals,
@@ -177,4 +185,4 @@ def residuals_plot(data: Dict[str, List[float]]) -> Dict[str, object]:
     )
     fig.add_hline(y=0, line_dash="dash")
     fig.update_layout(template="plotly_white")
-    return fig.to_dict()
+    return _to_plotly_json(fig)
