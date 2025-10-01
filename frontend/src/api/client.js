@@ -1,4 +1,54 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const trimTrailingSlash = (value) => (typeof value === 'string' ? value.replace(/\/$/, '') : value);
+
+const resolveBaseUrl = () => {
+  const metaEnv = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : {};
+  const configured = metaEnv.VITE_API_BASE_URL;
+  const isDev = Boolean(metaEnv && metaEnv.DEV);
+  if (configured && configured.trim().length > 0) {
+    return trimTrailingSlash(configured.trim());
+  }
+
+  if (isDev) {
+    return '';
+  }
+
+  if (typeof window === 'undefined' || !window.location) {
+    return '';
+  }
+
+  const { protocol, hostname, host, port } = window.location;
+
+  const codespacesMatch = hostname.match(/^(.*)-(\d+)(\..*)$/);
+  if (codespacesMatch) {
+    const [, prefix, portSuffix, suffix] = codespacesMatch;
+    if (portSuffix !== '8000') {
+      return `${protocol}//${trimTrailingSlash(`${prefix}-8000${suffix}`)}`;
+    }
+  }
+
+  if (port && port !== '8000') {
+    return `${protocol}//${hostname}:8000`;
+  }
+
+  if (host) {
+    return trimTrailingSlash(`${protocol}//${host}`);
+  }
+
+  return '';
+};
+
+const API_BASE_URL = resolveBaseUrl();
+
+const buildUrl = (path) => {
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+  const normalisedPath = path.startsWith('/') ? path.slice(1) : path;
+  if (!API_BASE_URL) {
+    return `/${normalisedPath}`;
+  }
+  return `${API_BASE_URL}/${normalisedPath}`;
+};
 
 let csrfToken = null;
 
@@ -22,11 +72,16 @@ async function request(path, options = {}) {
     headers['X-CSRF-Token'] = csrfToken;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-    credentials: 'include'
-  });
+  let response;
+  try {
+    response = await fetch(buildUrl(path), {
+      ...options,
+      headers,
+      credentials: 'include'
+    });
+  } catch (error) {
+    throw new Error(`Network request failed: ${error.message}`);
+  }
 
   updateCsrfToken(response);
 
@@ -63,12 +118,17 @@ export async function uploadDataset(file, name, description) {
   if (csrfToken) {
     headers['X-CSRF-Token'] = csrfToken;
   }
-  const response = await fetch(`${API_BASE_URL}/data/upload`, {
-    method: 'POST',
-    body: formData,
-    headers,
-    credentials: 'include'
-  });
+  let response;
+  try {
+    response = await fetch(buildUrl('/data/upload'), {
+      method: 'POST',
+      body: formData,
+      headers,
+      credentials: 'include'
+    });
+  } catch (error) {
+    throw new Error(`Network request failed: ${error.message}`);
+  }
   updateCsrfToken(response);
   if (!response.ok) {
     const message = await response.text();

@@ -29,6 +29,10 @@ npm --prefix frontend run dev   # serves on http://127.0.0.1:5173
 
 For production-style builds, `npm --prefix frontend run build` followed by `npm --prefix frontend run preview -- --host 127.0.0.1 --port 5173` serves the compiled bundle.
 
+The browser client automatically discovers the API origin when `VITE_API_BASE_URL` is not provided. During development it swaps the dev-server host suffix/port (e.g. `localhost:5173` or `*.app.github.dev` domains) to the backend port `8000`, and the Vite proxy forwards `/data`, `/model`, `/preprocess`, `/visualization`, `/system`, and `/health` calls to FastAPI. This keeps GitHub Codespaces, Gitpod, and static deployments in sync without manual reconfiguration.
+
+On first load the UI ensures the **Titanic** sample dataset is available: it will preload the dataset from the built-in registry if the in-memory store is empty, so the preview, summary, and column metadata appear without any manual uploads.
+
 ## Configuration model
 
 - **Defaults:** `config/config.yaml`
@@ -63,6 +67,7 @@ python cli.py info
 ```
 
 CLI runs share the same in-memory services as the REST API, and populate `/runs/last` via the `RunTracker` singleton.
+When invoked repeatedly the CLI persists trained models and splits to `backend/storage/cli_*`, allowing the `evaluate` command to run in a fresh process while honouring the current configuration.
 
 ## Smoke automation
 

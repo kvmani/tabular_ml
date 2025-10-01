@@ -21,5 +21,19 @@
 
 - Default Titanic dataset autoloads with preview, summary, and column list populated on start.
 - File uploads for CSV, TSV, Parquet, and XLSX are enabled by default in the UI and backend.
-- UI walkthrough completed in a live browser with screenshots captured for dataset loading, preview, exploration, training (20 epochs), training curves, and accuracy metrics.  
-  A downloadable bundle is available as `ui_screenshots.zip` (see artifacts).
+- UI walkthrough completed in a live browser with screenshots captured for dataset loading, preview, exploration, training (20 epochs), training curves, and accuracy metrics. (Screenshots retained externally per no-binary-commits policy.)
+
+## Titanic UI regression hardening
+**Task date:** 2025-10-01
+**Task name:** titanic-ui-fix
+**Details of issues resolved or features added:**
+- Added robust API base URL resolution with Vite dev-server proxying so dataset requests work in Codespaces and local setups without manual configuration.
+- Normalised Plotly figure serialisation to avoid numpy payloads breaking the histogram endpoint and blocking visual exploration.
+- Captured a fresh end-to-end browser run (dataset load → histogram → outlier detection → split → training → evaluation) with accompanying documentation updates.
+
+**Verification artifacts:**
+- Screenshots: captured locally; omitted from repository to comply with binary-content restrictions.
+- Test summary: `pytest` (chunk 23da66), `npm --prefix frontend run build` (chunk 5b12d3)
+
+**Notes:**
+- The `browser_container` Playwright helper was unavailable in this environment, so screenshots were captured via the local Playwright session after verifying the same user flow manually.
