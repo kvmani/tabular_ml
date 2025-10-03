@@ -37,3 +37,18 @@
 
 **Notes:**
 - The `browser_container` Playwright helper was unavailable in this environment, so screenshots were captured via the local Playwright session after verifying the same user flow manually.
+
+## Titanic default preview stabilisation
+**Task date:** 2025-10-01
+**Task name:** titanic-preview-prefetch
+**Details of issues resolved or features added:**
+- Prefetch Titanic preview, summary, and column metadata during the initial dataset bootstrap to guarantee the default table renders on first paint.
+- Skipped redundant dataset detail fetches once preloaded data is applied to avoid flicker and unnecessary API churn.
+- Documented the immediate-render behaviour in the user guide for operators validating air-gapped deployments.
+
+**Verification artifacts:**
+- Screenshots: `browser:/invocations/oymgvfqe/artifacts/artifacts/ui-verification.zip`
+- Test summary: `pytest` (chunk 86e19e), `npm run build --prefix frontend` (chunk a464a0)
+
+**Notes:**
+- The CLI smoke test and Playwright UI suite currently fail in this environment—the CLI flow cannot locate the transient training artefact during evaluation, and the UI suite requires Playwright browsers to be installed (`playwright install`). See chunk 86e19e for details.
