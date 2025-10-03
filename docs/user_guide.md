@@ -12,7 +12,7 @@ This guide documents the end-to-end flow validated for the default Titanic datas
 
 - On first load the UI checks the dataset registry via `/system/config` and `/data/datasets`.
 - If the in-memory store is empty it issues `POST /data/samples/titanic` to hydrate the catalogue.
-- The dataset preview, descriptive summary, and column metadata populate immediately so you can inspect the Titanic data without interacting with the upload form.
+- The dataset preview, descriptive summary, and column metadata are fetched during the initial dataset bootstrap so the Titanic table renders as soon as the app loads—no extra clicks required.
 
 ## Exploration workflow
 

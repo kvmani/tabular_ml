@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import DatasetManager from './components/DatasetManager.jsx';
 import PreprocessPanel from './components/PreprocessPanel.jsx';
 import VisualizationPanel from './components/VisualizationPanel.jsx';
@@ -48,6 +48,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [systemConfig, setSystemConfig] = useState(null);
   const [allowUploads, setAllowUploads] = useState(true);
+  const prefetchedDatasetId = useRef(null);
 
   const { message, variant, notify } = useNotification();
 
@@ -100,13 +101,12 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const [datasetsResponse, samplesResponse, algorithmsResponse, configResponse] = await Promise.all([
-          listDatasets(),
+        const [samplesResponse, algorithmsResponse, configResponse, datasetsResponse] = await Promise.all([
           listSampleDatasets(),
           listAlgorithms(),
-          getSystemConfig()
+          getSystemConfig(),
+          refreshDatasets()
         ]);
-        setDatasets(datasetsResponse.datasets || []);
         setSampleDatasets(samplesResponse.samples || []);
         setAlgorithms(algorithmsResponse.algorithms || []);
         setSystemConfig(configResponse);
@@ -115,10 +115,16 @@ export default function App() {
         } else {
           setAllowUploads(true);
         }
-        if (datasetsResponse.default_dataset_id) {
-          setCurrentDatasetId(datasetsResponse.default_dataset_id);
-        } else if (datasetsResponse.datasets?.length) {
-          setCurrentDatasetId(datasetsResponse.datasets[0].dataset_id);
+
+        const datasetIdFromResponse =
+          datasetsResponse?.default_dataset_id ||
+          datasetsResponse?.datasets?.[0]?.dataset_id ||
+          '';
+
+        if (datasetIdFromResponse) {
+          prefetchedDatasetId.current = datasetIdFromResponse;
+          setCurrentDatasetId(datasetIdFromResponse);
+          await refreshDatasetDetails(datasetIdFromResponse);
         }
       } catch (error) {
         notify(error.message, 'error');
@@ -127,7 +133,16 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    refreshDatasetDetails(currentDatasetId);
+    if (!currentDatasetId) {
+      prefetchedDatasetId.current = null;
+      setPreview([]);
+      setSummary({});
+      setColumnsInfo({ columns: [], dtypes: {} });
+    } else if (prefetchedDatasetId.current === currentDatasetId) {
+      prefetchedDatasetId.current = null;
+    } else {
+      refreshDatasetDetails(currentDatasetId);
+    }
     setSplitId('');
     setModelId('');
     setMetrics(null);
