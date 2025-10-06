@@ -79,7 +79,7 @@ Ensure both backend (`:8000`) and frontend (`:5173`) are running, then execute:
 npm --prefix frontend run test:e2e
 ```
 
-Screenshots, traces, and the HTML report are written to `artifacts/ui/`.
+Screenshots are written to `docs/screenshots/2025-10-06_e2e-smoke/`; traces and the HTML report remain in `artifacts/ui/`.
 
 ## 6. Full test suite
 
@@ -115,7 +115,8 @@ At runtime the `/system/config` endpoint and the **Configuration** panel in the 
 
 - `artifacts/api/` – JSON payloads from the REST smoke script
 - `artifacts/cli/` – CLI command outputs
-- `artifacts/ui/` – Playwright screenshots, traces, HTML report
+- `docs/screenshots/2025-10-06_e2e-smoke/` – Playwright screenshots regenerated per run
+- `artifacts/ui/` – Playwright traces, HTML report
 - Logs are emitted to stdout only and never persisted to disk when `persist_user_data=false` (default).
 
 If you need to clear generated files:

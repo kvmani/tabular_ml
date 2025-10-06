@@ -75,7 +75,9 @@ When invoked repeatedly the CLI persists trained models and splits to `backend/s
 |--------|---------|--------|
 | `scripts/smoke_api.sh` | Exercises REST endpoints (health, algorithms, sample load, split, train, evaluate) using CSRF headers | `artifacts/api/*.json` |
 | `scripts/smoke_backend.sh` | CLI flow (list, preview, train, evaluate, info) | `artifacts/cli/*.json` |
-| `npm --prefix frontend run test:e2e` | Playwright UI smoke, network-blocked, captures screenshots and trace | `artifacts/ui/` |
+| `npm --prefix frontend run test:e2e` | Playwright UI smoke, network-blocked, captures screenshots and trace | `docs/screenshots/2025-10-06_e2e-smoke/` |
+
+Manual reproduction steps for the UI flow are documented in [docs/verification.md](docs/verification.md).
 
 ## Testing & linting
 
@@ -86,7 +88,7 @@ make lint              # ruff + black --check
 make fmt               # black .
 ```
 
-Pytest coverage includes configuration layering, dataset registry wiring, preprocessing, algorithm training, CLI commands, API smoke tests, and an integration boot of `run_app.py`. Playwright walks the UI flow end-to-end and stores screenshots in `artifacts/ui/` for auditing.
+Pytest coverage includes configuration layering, dataset registry wiring, preprocessing, algorithm training, CLI commands, API smoke tests, and an integration boot of `run_app.py`. Playwright walks the UI flow end-to-end and stores screenshots in `docs/screenshots/2025-10-06_e2e-smoke/` for auditing.
 
 ### UI regression workflow
 
