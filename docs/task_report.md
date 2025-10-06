@@ -67,3 +67,18 @@
 
 **Notes:**
 - `npm` reported four moderate vulnerabilities during dependency installation; run `npm audit fix --force` when preparing a release bundle.
+
+## Visualization CI hardening
+**Task date:** 2025-10-06
+**Task name:** playwright-visual-ci
+**Details of issues resolved or features added:**
+- Expanded the Playwright smoke test to cover default Titanic previews, CSV uploads, histogram/scatter visualisations, and the full train/evaluate loop with screenshot capture.
+- Added reusable helpers for waiting on Plotly canvases and SSE endpoints and redirected screenshots to `docs/screenshots/` for long-term auditing.
+- Enabled GitHub Actions to run `npm --prefix frontend run test:e2e` alongside documentation describing the manual replay procedure.
+
+**Verification artifacts:**
+- Screenshots: `docs/screenshots/2025-10-06_e2e-smoke/`
+- Test summary: `npm --prefix frontend run test:e2e` (CI workflow `Playwright E2E`)
+
+**Notes:**
+- The automation starts both backend and frontend servers via Playwright `webServer`; ensure ports 8000/5173 are free before running locally.

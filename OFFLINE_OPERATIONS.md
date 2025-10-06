@@ -31,7 +31,7 @@ This project targets air-gapped deployments. For a detailed walkthrough see [RUN
 |------|---------|-------|
 | REST smoke | `scripts/smoke_api.sh http://127.0.0.1:8000` | Saves JSON payloads to `artifacts/api/` |
 | CLI smoke | `scripts/smoke_backend.sh` | Stores CLI outputs under `artifacts/cli/` |
-| UI smoke | `npm --prefix frontend run test:e2e` | Requires backend + frontend, writes screenshots to `artifacts/ui/` |
+| UI smoke | `npm --prefix frontend run test:e2e` | Requires backend + frontend, writes screenshots to `docs/screenshots/2025-10-06_e2e-smoke/` |
 
 ## 6. Routine maintenance
 

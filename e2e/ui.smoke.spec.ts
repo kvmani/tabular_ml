@@ -1,48 +1,71 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
-import fs from 'fs/promises';
 
-import { blockExternalRequests } from './helpers';
+import {
+  blockExternalRequests,
+  captureScreenshot,
+  waitForEventStream,
+  waitForPlotlyCanvas
+} from './helpers';
 
-const ARTIFACT_ROOT = path.resolve(__dirname, '../artifacts/ui');
-
-async function capture(page, name) {
-  await fs.mkdir(ARTIFACT_ROOT, { recursive: true });
-  const shotPath = path.join(ARTIFACT_ROOT, name);
-  await page.screenshot({ path: shotPath, fullPage: true });
-}
+const SCREENSHOT_ROOT = path.resolve(__dirname, '../docs/screenshots/2025-10-06_e2e-smoke');
+const FIXTURE_PATH = path.resolve(__dirname, './fixtures/iris_small.csv');
 
 test.describe('offline UI smoke', () => {
-  test('load dataset, split, train, evaluate', async ({ page, baseURL }) => {
+  test('default preview, upload, visualise, train, and evaluate', async ({ page, baseURL }) => {
     await blockExternalRequests(page);
     const targetUrl = baseURL ?? 'http://127.0.0.1:8000';
 
-    await page.goto(targetUrl);
-    await page.waitForSelector('[data-testid="dataset-selector"]');
-    await capture(page, 'step-1-home.png');
+    await page.goto(targetUrl, { waitUntil: 'networkidle' });
 
-    await page.getByTestId('load-sample-titanic').click();
-    await expect(page.getByTestId('dataset-preview')).toBeVisible({ timeout: 10000 });
-    await capture(page, 'step-2-sample.png');
+    const datasetPreview = page.getByTestId('dataset-preview');
+    await expect(datasetPreview).toBeVisible({ timeout: 30000 });
+    await expect(datasetPreview).toContainText(/PassengerId/i, { timeout: 30000 });
+    const columnList = page.getByTestId('column-list');
+    await expect(columnList).toContainText(/Survived/i);
+    await captureScreenshot(page, path.join(SCREENSHOT_ROOT, '01_home.png'));
 
-    await page.getByTestId('split-target').selectOption('Survived');
-    await page.getByTestId('create-split').click();
-    await expect(page.getByText(/Using split:/)).toBeVisible({ timeout: 20000 });
-    await capture(page, 'step-3-split.png');
+    const uploadForm = page.locator('form.upload-form');
+    await uploadForm.locator('input[type="text"]').fill('Iris fixture (Playwright)');
+    await uploadForm.locator('input[type="file"]').setInputFiles(FIXTURE_PATH);
+    await uploadForm.locator('button:has-text("Upload dataset")').click();
+    await expect(page.locator('.notification')).toContainText(/Uploaded Iris fixture/i, { timeout: 45000 });
+    await expect(datasetPreview).toContainText(/sepal_length/i, { timeout: 45000 });
+    await expect(columnList).toContainText(/species/i, { timeout: 45000 });
+    await captureScreenshot(page, path.join(SCREENSHOT_ROOT, '02_dataset_uploaded.png'));
 
-    await page.getByTestId('train-target').selectOption('Survived');
+    const histogramSection = page.locator('.viz-grid > div').first();
+    await expect(histogramSection.locator('select option[value="sepal_length"]')).toBeVisible({ timeout: 15000 });
+    await histogramSection.locator('select').first().selectOption('sepal_length');
+    await histogramSection.locator('button:has-text("Generate histogram")').click();
+    const histogramPlot = histogramSection.locator('.js-plotly-plot').first();
+    await waitForPlotlyCanvas(histogramPlot);
+    await captureScreenshot(page, path.join(SCREENSHOT_ROOT, '03_histogram.png'));
+
+    const scatterSection = page.locator('.viz-grid > div').nth(1);
+    await scatterSection.locator('select').nth(0).selectOption('sepal_length');
+    await scatterSection.locator('select').nth(1).selectOption('petal_length');
+    await scatterSection.locator('select').nth(2).selectOption('species');
+    await scatterSection.locator('button:has-text("Generate scatter")').click();
+    const scatterPlot = scatterSection.locator('.js-plotly-plot').first();
+    await waitForPlotlyCanvas(scatterPlot);
+    await captureScreenshot(page, path.join(SCREENSHOT_ROOT, '04_scatter.png'));
+
+    await page.getByTestId('train-target').selectOption('species');
+    const eventStreamPromise = waitForEventStream(page, '/model/train', { optional: true, timeout: 10000 });
     await page.getByTestId('train-button').click();
-    await expect(page.getByText(/Model trained successfully/)).toBeVisible({ timeout: 30000 });
-    await capture(page, 'step-4-train.png');
+    await captureScreenshot(page, path.join(SCREENSHOT_ROOT, '05_training-start.png'));
+    await eventStreamPromise;
+    await expect(page.locator('.notification')).toContainText(/Model trained successfully/i, { timeout: 120000 });
+    await expect(page.getByTestId('metrics-summary')).toBeVisible({ timeout: 120000 });
+    await captureScreenshot(page, path.join(SCREENSHOT_ROOT, '06_training-complete.png'));
 
     await page.getByTestId('evaluate-button').click();
-    await expect(page.getByTestId('metrics-summary')).toBeVisible({ timeout: 30000 });
-    await capture(page, 'step-5-evaluate.png');
-
-    const metricsText = (await page.getByTestId('metrics-summary').innerText()).toLowerCase();
-    expect(metricsText).toContain('validation');
-    expect(metricsText).toContain('test');
-
-    await expect(page.getByTestId('confusion-matrix')).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId('metrics-summary')).toContainText(/Validation/i, { timeout: 120000 });
+    const evaluationPlots = page.locator('.evaluation-grid .js-plotly-plot');
+    await waitForPlotlyCanvas(evaluationPlots.first());
+    await captureScreenshot(page, path.join(SCREENSHOT_ROOT, '07_evaluation.png'));
+    await expect(page.getByTestId('confusion-matrix')).toBeVisible({ timeout: 120000 });
+    await captureScreenshot(page, path.join(SCREENSHOT_ROOT, '08_confusion-matrix.png'));
   });
 });
