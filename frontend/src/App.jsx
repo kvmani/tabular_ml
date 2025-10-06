@@ -21,16 +21,41 @@ import {
 function useNotification() {
   const [message, setMessage] = useState(null);
   const [variant, setVariant] = useState('info');
+  const timeoutRef = useRef(null);
 
-  const notify = (text, type = 'info') => {
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  const notify = (text, type = 'info', options = {}) => {
+    const { persist = false } = options;
     setMessage(text);
     setVariant(type);
-    if (text) {
-      setTimeout(() => setMessage(null), 4000);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (text && !persist) {
+      timeoutRef.current = setTimeout(() => {
+        setMessage(null);
+        timeoutRef.current = null;
+      }, 4000);
     }
   };
 
-  return { message, variant, notify };
+  const clear = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setMessage(null);
+  };
+
+  return { message, variant, notify, clear };
 }
 
 export default function App() {
@@ -52,8 +77,38 @@ export default function App() {
 
   const { message, variant, notify } = useNotification();
 
-  const refreshDatasets = async (selectId) => {
-    const response = await listDatasets();
+  const refreshDatasets = async (selectId, options = {}) => {
+    const { allowFallback = false } = options;
+
+    const attemptTitanicFallback = async () => {
+      setLoading(true);
+      try {
+        const sample = await loadSampleDataset('titanic');
+        notify(`Loaded sample dataset: ${sample.dataset.name}.`);
+        return sample.dataset.dataset_id;
+      } catch (error) {
+        notify(
+          `Automatic Titanic preload failed: ${error.message}`,
+          'error',
+          { persist: true }
+        );
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    let response;
+    try {
+      response = await listDatasets();
+    } catch (error) {
+      if (allowFallback) {
+        const datasetId = await attemptTitanicFallback();
+        return refreshDatasets(datasetId, { allowFallback: false });
+      }
+      throw error;
+    }
+
     const nextDatasets = response.datasets || [];
     setDatasets(nextDatasets);
     setCurrentDatasetId((prevId) => {
@@ -71,6 +126,12 @@ export default function App() {
       }
       return nextDatasets.length > 0 ? nextDatasets[0].dataset_id : '';
     });
+
+    if (allowFallback && nextDatasets.length === 0 && !response.default_dataset_id) {
+      const datasetId = await attemptTitanicFallback();
+      return refreshDatasets(datasetId, { allowFallback: false });
+    }
+
     return response;
   };
 
@@ -101,11 +162,10 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const [samplesResponse, algorithmsResponse, configResponse, datasetsResponse] = await Promise.all([
+        const [samplesResponse, algorithmsResponse, configResponse] = await Promise.all([
           listSampleDatasets(),
           listAlgorithms(),
-          getSystemConfig(),
-          refreshDatasets()
+          getSystemConfig()
         ]);
         setSampleDatasets(samplesResponse.samples || []);
         setAlgorithms(algorithmsResponse.algorithms || []);
@@ -115,7 +175,11 @@ export default function App() {
         } else {
           setAllowUploads(true);
         }
-
+      } catch (error) {
+        notify(error.message, 'error');
+      }
+      try {
+        const datasetsResponse = await refreshDatasets(undefined, { allowFallback: true });
         const datasetIdFromResponse =
           datasetsResponse?.default_dataset_id ||
           datasetsResponse?.datasets?.[0]?.dataset_id ||
@@ -127,7 +191,7 @@ export default function App() {
           await refreshDatasetDetails(datasetIdFromResponse);
         }
       } catch (error) {
-        notify(error.message, 'error');
+        // Fallback notifications are handled in refreshDatasets(); avoid duplicate toasts.
       }
     })();
   }, []);

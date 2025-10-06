@@ -23,6 +23,7 @@ This project targets air-gapped deployments. For a detailed walkthrough see [RUN
 - Sample CSV files live in `data/sample_datasets/`; metadata lives in `config/datasets.yaml`.
 - Regenerate the larger samples with `py -3 scripts/prepare_sample_datasets.py` when new upstream data is available.
 - Synthetic augmentation is controlled via `datasets.synthetic` in `config/config.yaml`.
+- Always ship the Titanic CSV in the bundle—`data/sample_datasets/titanic_sample.csv` must be present or the API will return HTTP 503 for `/data/datasets` and the UI will surface a blocking alert until the file is restored.
 
 ## 5. Smoke coverage
 

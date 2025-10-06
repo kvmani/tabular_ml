@@ -29,31 +29,50 @@ class DataManager:
         self.sample_datasets = SAMPLE_DATASETS
         self.synthetic_cfg = settings.datasets.synthetic
         self.default_dataset_id: Optional[str] = None
+        self.default_dataset_error: Optional[str] = None
 
-        self._preload_default_dataset()
+        try:
+            self._preload_default_dataset()
+        except Exception:  # pragma: no cover - defensive logging during import
+            logging.getLogger(__name__).debug(
+                "Default dataset preload failed during initialisation.",
+                exc_info=True,
+            )
 
-    def _preload_default_dataset(self) -> None:
+    def _preload_default_dataset(self, *, raise_on_failure: bool = False) -> None:
         """Load the configured default sample dataset if one is provided."""
 
         default_key = getattr(settings.app, "default_sample_dataset", None)
         if not default_key:
+            self.default_dataset_error = None
             return
+
+        logger = logging.getLogger(__name__)
+
         if default_key not in self.sample_datasets:
-            logging.getLogger(__name__).warning(
-                "Default sample dataset '%s' is not present in the registry.",
-                default_key,
+            message = (
+                f"Default sample dataset '{default_key}' is not present in the registry."
             )
+            logger.warning(message)
+            self.default_dataset_error = message
+            if raise_on_failure:
+                raise KeyError(message)
             return
+
         try:
             metadata = self.load_sample_dataset(default_key)
         except Exception as exc:  # pragma: no cover - defensive logging
-            logging.getLogger(__name__).warning(
-                "Failed to preload default dataset '%s': %s", default_key, exc
-            )
+            message = f"Failed to preload default dataset '{default_key}': {exc}"
+            logger.exception(message)
+            self.default_dataset_error = message
+            if raise_on_failure:
+                raise
             return
+
         with self._lock:
             if metadata.dataset_id in self._datasets:
                 self.default_dataset_id = metadata.dataset_id
+                self.default_dataset_error = None
 
     def ensure_default_dataset(self) -> None:
         """Ensure the default dataset is available after state resets."""
@@ -63,9 +82,11 @@ class DataManager:
             return
         with self._lock:
             if self.default_dataset_id and self.default_dataset_id in self._datasets:
+                self.default_dataset_error = None
                 return
             self.default_dataset_id = None
-        self._preload_default_dataset()
+            self.default_dataset_error = None
+        self._preload_default_dataset(raise_on_failure=True)
 
     # ------------------------------------------------------------------
     # Dataset operations

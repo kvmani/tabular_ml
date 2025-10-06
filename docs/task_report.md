@@ -52,3 +52,18 @@
 
 **Notes:**
 - The CLI smoke test and Playwright UI suite currently fail in this environment—the CLI flow cannot locate the transient training artefact during evaluation, and the UI suite requires Playwright browsers to be installed (`playwright install`). See chunk 86e19e for details.
+
+## Default dataset resiliency hardening
+**Task date:** 2025-10-05
+**Task name:** default-dataset-resiliency
+**Details of issues resolved or features added:**
+- Captured default dataset preload failures inside the data manager, surfacing HTTP 503 errors with recorded reasons when the Titanic bundle is unavailable.
+- Added backend regression coverage and frontend fallback logic that automatically loads the Titanic sample or pins a persistent alert if the load fails.
+- Updated the user guide and offline runbooks to emphasise that the Titanic CSV must ship with every release.
+
+**Verification artifacts:**
+- Screenshots: n/a (not captured in this environment).
+- Test summary: `pytest tests/backend/api/test_data_routes.py` (chunk 27f616), `npm --prefix frontend run test:unit` (chunk ca2833)
+
+**Notes:**
+- `npm` reported four moderate vulnerabilities during dependency installation; run `npm audit fix --force` when preparing a release bundle.

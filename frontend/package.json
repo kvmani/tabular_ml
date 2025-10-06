@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:e2e": "playwright test --config=../e2e/playwright.config.ts"
+    "test:e2e": "playwright test --config=../e2e/playwright.config.ts",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "plotly.js": "^2.27.0",
@@ -15,8 +16,12 @@
     "react-plotly.js": "^2.6.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.45.0",
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
     "@vitejs/plugin-react": "^4.0.0",
+    "jsdom": "^27.0.0",
     "vite": "^5.0.0",
-    "@playwright/test": "^1.45.0"
+    "vitest": "^0.34.6"
   }
 }

@@ -19,6 +19,8 @@ def reset_state():
     data_manager._metadata.clear()
     data_manager._splits.clear()
     data_manager._models.clear()
+    data_manager.default_dataset_id = None
+    data_manager.default_dataset_error = None
     run_tracker.reset()
     data_manager.ensure_default_dataset()
     yield
@@ -26,4 +28,6 @@ def reset_state():
     data_manager._metadata.clear()
     data_manager._splits.clear()
     data_manager._models.clear()
+    data_manager.default_dataset_id = None
+    data_manager.default_dataset_error = None
     run_tracker.reset()

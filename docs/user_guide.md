@@ -13,6 +13,7 @@ This guide documents the end-to-end flow validated for the default Titanic datas
 - On first load the UI checks the dataset registry via `/system/config` and `/data/datasets`.
 - If the in-memory store is empty it issues `POST /data/samples/titanic` to hydrate the catalogue.
 - The dataset preview, descriptive summary, and column metadata are fetched during the initial dataset bootstrap so the Titanic table renders as soon as the app loads—no extra clicks required.
+- If the backend reports the default dataset is unavailable (HTTP 503 with the recorded reason) the UI automatically invokes the Titanic loader and surfaces a blocking notification when the bundle is missing so operators can restore it before proceeding.
 
 ## Exploration workflow
 
@@ -29,5 +30,5 @@ The System Configuration API exposes `settings.app.allow_file_uploads`. The data
 ## Troubleshooting
 
 - **Backend reachable?** Use the Configuration panel’s dataset registry list to confirm the frontend is connected to the backend.
-- **No datasets listed?** Refresh the list from the Dataset panel; the hook will reload the Titanic sample if the store was cleared.
+- **No datasets listed?** Refresh the list from the Dataset panel; the hook will reload the Titanic sample if the store was cleared and will pin a blocking alert if the bundled CSV was not shipped with the release.
 - **Different hostname/port?** Set `VITE_API_BASE_URL` in the frontend environment to the desired API origin. The hook first honours this variable, then applies the dev heuristics (5173 → 8000 / Codespaces suffix swap), and finally defaults to the current origin, so overrides are only required for true cross-domain deployments.

@@ -100,6 +100,8 @@ py -3 scripts/prepare_sample_datasets.py
 
 The script fetches the public sources (OpenML Titanic, UCI Adult) when network is available and rebuilds the curated files under `data/sample_datasets/`.
 
+> **Release gate:** verify `data/sample_datasets/titanic_sample.csv` is included in the artefact bundle. When the file is missing the backend reports HTTP 503 on `/data/datasets` and the UI pins a blocking notification until the bundle is repaired, preventing users from starting runs without the default sample.
+
 ## 8. Configuration references
 
 - Default settings: `config/config.yaml`
@@ -111,9 +113,9 @@ At runtime the `/system/config` endpoint and the **Configuration** panel in the 
 
 ## 9. Artifacts and logs
 
-- `artifacts/api/` – JSON payloads from the REST smoke script
-- `artifacts/cli/` – CLI command outputs
-- `artifacts/ui/` – Playwright screenshots, traces, HTML report
+- `artifacts/api/` â€“ JSON payloads from the REST smoke script
+- `artifacts/cli/` â€“ CLI command outputs
+- `artifacts/ui/` â€“ Playwright screenshots, traces, HTML report
 - Logs are emitted to stdout only and never persisted to disk when `persist_user_data=false` (default).
 
 If you need to clear generated files:
