@@ -18,7 +18,11 @@ router = APIRouter(prefix="/data", tags=["data"])
 
 @router.get("/datasets", response_model=schemas.DatasetListResponse)
 def list_datasets() -> schemas.DatasetListResponse:
-    datasets = data_manager.list_datasets()
+    try:
+        datasets = data_manager.list_datasets()
+    except Exception as exc:  # pragma: no cover - defensive routing
+        detail = data_manager.default_dataset_error or str(exc)
+        raise HTTPException(status_code=503, detail=detail) from exc
     return schemas.DatasetListResponse(
         datasets=datasets, default_dataset_id=data_manager.default_dataset_id
     )
