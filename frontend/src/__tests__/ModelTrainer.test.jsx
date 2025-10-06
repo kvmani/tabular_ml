@@ -7,12 +7,17 @@ vi.mock('react-plotly.js', () => ({
   default: (props) => <div data-testid={props['data-testid'] || 'plotly'} {...props} />
 }));
 
-const trainModelMock = vi.fn();
-const openTrainingStreamMock = vi.fn();
+const { trainModelMock, openTrainingStreamMock, openLogStreamMock } = vi.hoisted(() => ({
+  trainModelMock: vi.fn(),
+  openTrainingStreamMock: vi.fn(),
+  openLogStreamMock: vi.fn(),
+}));
 
 vi.mock('../api/client.js', () => ({
+  __esModule: true,
   trainModel: trainModelMock,
-  openTrainingStream: openTrainingStreamMock
+  openTrainingStream: openTrainingStreamMock,
+  openLogStream: openLogStreamMock,
 }));
 
 import ModelTrainer from '../components/ModelTrainer.jsx';
@@ -55,6 +60,7 @@ describe('ModelTrainer live updates', () => {
   beforeEach(() => {
     trainModelMock.mockReset();
     openTrainingStreamMock.mockReset();
+    openLogStreamMock.mockReset();
   });
 
   afterEach(() => {

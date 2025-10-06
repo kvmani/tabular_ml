@@ -5,6 +5,7 @@ import VisualizationPanel from './components/VisualizationPanel.jsx';
 import ModelTrainer from './components/ModelTrainer.jsx';
 import EvaluationPanel from './components/EvaluationPanel.jsx';
 import SystemConfigPanel from './components/SystemConfigPanel.jsx';
+import LogConsole from './components/LogConsole.jsx';
 import {
   listDatasets,
   listSampleDatasets,
@@ -17,8 +18,9 @@ import {
   evaluateModel,
   getSystemConfig
 } from './api/client.js';
+import useLogStream from './hooks/useLogStream.js';
 
-function useNotification() {
+function useNotification(logSink) {
   const [message, setMessage] = useState(null);
   const [variant, setVariant] = useState('info');
   const timeoutRef = useRef(null);
@@ -44,6 +46,14 @@ function useNotification() {
         setMessage(null);
         timeoutRef.current = null;
       }, 4000);
+    }
+    if (logSink && typeof logSink === 'function' && type === 'error') {
+      logSink({
+        level: 'ERROR',
+        message: String(text),
+        logger: 'ui.toast',
+        module: 'App',
+      });
     }
   };
 
@@ -74,9 +84,11 @@ export default function App() {
   const [systemConfig, setSystemConfig] = useState(null);
   const [allowUploads, setAllowUploads] = useState(true);
   const [liveHistory, setLiveHistory] = useState([]);
+  const [logsOpen, setLogsOpen] = useState(false);
   const prefetchedDatasetId = useRef(null);
 
-  const { message, variant, notify } = useNotification();
+  const logStream = useLogStream();
+  const { message, variant, notify } = useNotification(logStream.pushLog);
 
   const refreshDatasets = async (selectId, options = {}) => {
     const { allowFallback = false } = options;
@@ -340,6 +352,32 @@ export default function App() {
       <footer>
         <p className="muted">Ready for air-gapped deployments. All processing happens on your infrastructure.</p>
       </footer>
+      <div
+        className={`log-console-panel ${logsOpen ? 'log-console-panel--open' : ''}`}
+        role="complementary"
+        aria-label="Live logs panel"
+      >
+        <div className="log-console-panel__inner">
+          <button
+            type="button"
+            className="log-console-panel__toggle"
+            onClick={() => setLogsOpen((prev) => !prev)}
+            aria-expanded={logsOpen}
+          >
+            <span>{logsOpen ? 'Hide Live Logs' : 'Show Live Logs'}</span>
+            <span className="log-console-panel__status">
+              {logStream.connectionState === 'open'
+                ? '● Connected'
+                : logStream.connectionState === 'reconnecting'
+                ? '○ Reconnecting'
+                : '○ Connecting'}
+            </span>
+          </button>
+          <div className="log-console-panel__body" hidden={!logsOpen}>
+            <LogConsole stream={logStream} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

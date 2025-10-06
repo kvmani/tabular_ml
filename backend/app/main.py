@@ -11,6 +11,7 @@ from config import settings
 
 from backend.app.core.security import CSPMiddleware, CSRFMiddleware
 from backend.app.api.routes import data, modeling, preprocess, system, visualization
+from backend.app.log_stream import LogStreamHandler, log_stream_manager
 
 DEFAULT_DEV_CORS_ORIGINS = (
     "http://127.0.0.1:5173",
@@ -44,6 +45,10 @@ def _cors_origins() -> List[str]:
 
 def create_app() -> FastAPI:
     app = FastAPI(title=settings.app.name, debug=settings.app.debug)
+    log_handler = LogStreamHandler(log_stream_manager)
+    logging.getLogger().addHandler(log_handler)
+    app.state.log_stream_handler = log_handler
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_cors_origins(),
@@ -66,6 +71,10 @@ def create_app() -> FastAPI:
     app.include_router(preprocess.router)
     app.include_router(modeling.router)
     app.include_router(visualization.router)
+
+    @app.on_event("shutdown")
+    async def _remove_log_handler() -> None:
+        logging.getLogger().removeHandler(log_handler)
 
     @app.get("/")
     def read_root() -> dict:

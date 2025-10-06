@@ -19,6 +19,11 @@ vi.mock('../api/client.js', () => {
     getHealth: vi.fn(),
     trainModel: vi.fn(),
     openTrainingStream: vi.fn(),
+    openLogStream: vi.fn().mockReturnValue({
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      close: vi.fn(),
+    }),
     detectOutliers: vi.fn(),
     removeOutliers: vi.fn(),
     imputeDataset: vi.fn(),
@@ -72,11 +77,13 @@ describe('App fallback behaviour', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/Automatic Titanic preload failed/i)
+        screen.getByText(/Automatic Titanic preload failed/i, { selector: '.notification' })
       ).toBeInTheDocument();
     });
 
-    const notification = screen.getByText(/Automatic Titanic preload failed/i);
+    const notification = screen.getByText(/Automatic Titanic preload failed/i, {
+      selector: '.notification'
+    });
 
     vi.useFakeTimers();
     vi.advanceTimersByTime(8000);

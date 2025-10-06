@@ -107,6 +107,8 @@ Agents must **manually** verify the UI in a real browser and **capture screensho
    - Confirm accuracy metrics and confusion/regression plots show.
 7. **Export/Download (if applicable):**
    - Verify artifacts download without errors.
+8. **Live Logs console:**
+   - Expand the bottom drawer, confirm new backend log entries stream in, and capture a screenshot of the populated console (`docs/screenshots/<YYYY-MM-DD>_<task-name>/07_live_logs.png`).
 
 Save screenshots in:  
 `docs/screenshots/<YYYY-MM-DD>_<task-name>/`  
