@@ -18,6 +18,7 @@ vi.mock('../api/client.js', () => {
     getSystemConfig: vi.fn().mockResolvedValue({}),
     getHealth: vi.fn(),
     trainModel: vi.fn(),
+    openTrainingStream: vi.fn(),
     detectOutliers: vi.fn(),
     removeOutliers: vi.fn(),
     imputeDataset: vi.fn(),

@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Plot from 'react-plotly.js';
+
+import { buildTrainingHistoryFigure } from '../utils/trainingHistory.js';
 
 function MetricTable({ title, metrics }) {
   if (!metrics) {
@@ -23,7 +25,15 @@ function MetricTable({ title, metrics }) {
   );
 }
 
-export default function EvaluationPanel({ modelId, metrics, evaluation, onEvaluate, disabled }) {
+export default function EvaluationPanel({
+  modelId,
+  metrics,
+  evaluation,
+  onEvaluate,
+  streamedHistory = [],
+  disabled
+}) {
+  const fallbackHistory = useMemo(() => buildTrainingHistoryFigure(streamedHistory), [streamedHistory]);
   return (
     <div className="card">
       <div className="card-header">
@@ -52,6 +62,14 @@ export default function EvaluationPanel({ modelId, metrics, evaluation, onEvalua
               layout={{ ...evaluation.training_history.layout, autosize: true }}
               style={{ width: '100%', height: '100%' }}
             />
+          ) : fallbackHistory ? (
+            <div data-testid="evaluation-history-plot">
+              <Plot
+                data={fallbackHistory.data}
+                layout={{ ...fallbackHistory.layout, autosize: true }}
+                style={{ width: '100%', height: '100%' }}
+              />
+            </div>
           ) : (
             <p className="muted">Evaluate the model to visualise training progress.</p>
           )}

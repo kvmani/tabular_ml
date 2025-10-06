@@ -1,14 +1,21 @@
 """Modeling and evaluation routes."""
 from __future__ import annotations
 
+import asyncio
+import json
+import logging
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from typing import Dict, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import StreamingResponse
+
+from pydantic import ValidationError
 
 from config import settings
 
 from backend.app.api import schemas
+from backend.app.models.storage import DataSplit
 from backend.app.services import evaluation as eval_utils
 from backend.app.services import visualization
 from backend.app.services.data_manager import data_manager
@@ -16,6 +23,7 @@ from backend.app.services.model_training import TrainingResult, model_trainer
 from backend.app.services.run_tracker import RunSummary, run_tracker
 
 router = APIRouter(prefix="/model", tags=["modeling"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/algorithms", response_model=schemas.AlgorithmListResponse)
@@ -114,6 +122,119 @@ def train(request: schemas.TrainRequest) -> schemas.TrainingResponse:
         history=result.artifact.history,
         split_id=result.split.split_id,
     )
+
+
+def _format_sse(event: Dict[str, object]) -> str:
+    event_type = event.get("type", "message")
+    data = json.dumps(event)
+    return f"event: {event_type}\ndata: {data}\n\n"
+
+
+@router.get("/train/stream")
+async def train_stream(payload: str = Query(..., description="JSON encoded TrainRequest")) -> StreamingResponse:
+    try:
+        request_data = json.loads(payload)
+    except json.JSONDecodeError as exc:  # pragma: no cover - defensive
+        raise HTTPException(status_code=400, detail=f"Invalid payload: {exc}") from exc
+
+    try:
+        request = schemas.TrainRequest(**request_data)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+    try:
+        df = data_manager.get_dataset(request.dataset_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    if df.shape[0] > settings.limits.max_rows_train:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Dataset has {df.shape[0]} rows which exceeds max_rows_train="
+                f"{settings.limits.max_rows_train}"
+            ),
+        )
+
+    split: Optional[DataSplit] = None
+    if request.split_id:
+        try:
+            split = data_manager.get_split(request.split_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    queue: asyncio.Queue[Dict[str, object]] = asyncio.Queue()
+    loop = asyncio.get_running_loop()
+
+    def push_event(event: Dict[str, object]) -> None:
+        loop.call_soon_threadsafe(queue.put_nowait, event)
+
+    push_event({"type": "status", "stage": "queued"})
+
+    executor = ThreadPoolExecutor(max_workers=1)
+
+    def _run_training() -> None:
+        try:
+            push_event({"type": "status", "stage": "starting"})
+            result = model_trainer.train(
+                dataset_id=request.dataset_id,
+                df=df,
+                target_column=request.target_column,
+                task_type=request.task_type,
+                algorithm=request.algorithm,
+                hyperparameters=request.hyperparameters,
+                split=split,
+                progress_callback=push_event,
+            )
+        except ValueError as exc:
+            push_event({"type": "error", "message": str(exc)})
+            logger.debug("Training stream validation error", exc_info=True)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            push_event({"type": "error", "message": "Training failed"})
+            logger.exception("Training stream crashed", exc_info=exc)
+        else:
+            data_manager.store_split(result.split)
+            data_manager.store_model(result.artifact)
+            metadata = data_manager.get_metadata(request.dataset_id)
+            run_tracker.record(
+                RunSummary(
+                    run_id=result.artifact.model_id,
+                    dataset_id=request.dataset_id,
+                    dataset_name=metadata.name,
+                    algorithm=request.algorithm,
+                    task_type=request.task_type,
+                    metrics=result.artifact.metrics,
+                    created_at=result.artifact.created_at,
+                )
+            )
+            push_event(
+                {
+                    "type": "result",
+                    "payload": {
+                        "model_id": result.artifact.model_id,
+                        "metrics": result.artifact.metrics,
+                        "history": result.artifact.history,
+                        "split_id": result.split.split_id,
+                    },
+                }
+            )
+        finally:
+            push_event({"type": "status", "stage": "finished"})
+            push_event({"type": "end"})
+
+    executor.submit(_run_training)
+
+    async def event_generator() -> asyncio.AsyncGenerator[str, None]:
+        try:
+            while True:
+                event = await queue.get()
+                if event.get("type") == "end":
+                    break
+                yield _format_sse(event)
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @router.post("/evaluate", response_model=schemas.EvaluationResponse)
