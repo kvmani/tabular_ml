@@ -4,7 +4,7 @@ from __future__ import annotations
 import importlib.util
 from dataclasses import dataclass
 from time import perf_counter
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 from uuid import uuid4
 
 import numpy as np
@@ -91,6 +91,7 @@ class ModelTrainer:
         algorithm: str,
         hyperparameters: Optional[Dict[str, Any]] = None,
         split: Optional[DataSplit] = None,
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> TrainingResult:
         if algorithm not in self.algorithm_catalog:
             raise ValueError(f"Unsupported algorithm '{algorithm}'")
@@ -121,6 +122,7 @@ class ModelTrainer:
 
         scale_numeric = algorithm in SCALE_NUMERIC_ALGORITHMS
         preprocessor = self._build_preprocessor(X_train, scale_numeric=scale_numeric)
+        self._emit_progress(progress_callback, {"type": "status", "stage": "preprocessing"})
         preprocessor.fit(X_train)
         X_train_proc = preprocessor.transform(X_train)
         X_val_proc = preprocessor.transform(X_val)
@@ -132,7 +134,12 @@ class ModelTrainer:
 
         if algorithm == "logistic_regression":
             artifact_metrics, history = self._train_logistic(
-                hyperparameters, X_train_proc, y_train, X_val_proc, y_val
+                hyperparameters,
+                X_train_proc,
+                y_train,
+                X_val_proc,
+                y_val,
+                progress_callback,
             )
             model_object = {
                 "type": "sklearn",
@@ -142,7 +149,13 @@ class ModelTrainer:
             metrics = artifact_metrics
         elif algorithm == "random_forest":
             artifact_metrics, history = self._train_random_forest(
-                task_type, hyperparameters, X_train_proc, y_train, X_val_proc, y_val
+                task_type,
+                hyperparameters,
+                X_train_proc,
+                y_train,
+                X_val_proc,
+                y_val,
+                progress_callback,
             )
             model_object = {
                 "type": "sklearn",
@@ -158,6 +171,7 @@ class ModelTrainer:
                 y_train,
                 X_val_proc,
                 y_val,
+                progress_callback,
             )
             model_object = {
                 "type": "sklearn",
@@ -174,6 +188,7 @@ class ModelTrainer:
                 y_train,
                 X_val_proc,
                 y_val,
+                progress_callback,
             )
             model_object = {
                 "type": model_type,
@@ -186,7 +201,12 @@ class ModelTrainer:
             metrics = artifact_metrics
         elif algorithm == "linear_regression":
             artifact_metrics, history = self._train_linear_regression(
-                hyperparameters, X_train_proc, y_train, X_val_proc, y_val
+                hyperparameters,
+                X_train_proc,
+                y_train,
+                X_val_proc,
+                y_val,
+                progress_callback,
             )
             model_object = {
                 "type": "sklearn",
@@ -218,6 +238,15 @@ class ModelTrainer:
             metrics=metrics,
             history=history,
             split_id=split.split_id,
+        )
+        self._emit_progress(
+            progress_callback,
+            {
+                "type": "completed",
+                "model_id": model_id,
+                "metrics": metrics,
+                "history_length": len(history),
+            },
         )
         return TrainingResult(artifact=artifact, split=split)
 
@@ -262,6 +291,18 @@ class ModelTrainer:
             kwargs["sparse_output"] = settings.ml.sklearn_onehot_sparse
         return OneHotEncoder(**kwargs)
 
+    def _emit_progress(
+        self,
+        callback: Optional[Callable[[Dict[str, Any]], None]],
+        event: Dict[str, Any],
+    ) -> None:
+        if callback is None:
+            return
+        try:
+            callback(event)
+        except Exception:  # pragma: no cover - defensive against user callbacks
+            pass
+
     def _train_logistic(
         self,
         hyperparameters: Dict[str, Any],
@@ -269,6 +310,7 @@ class ModelTrainer:
         y_train: pd.Series,
         X_val: np.ndarray,
         y_val: pd.Series,
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> Tuple[Dict[str, Dict[str, float]], List[Dict[str, Any]]]:
         params = {"max_iter": 500, "solver": "lbfgs", "multi_class": "auto"}
         params.update(hyperparameters)
@@ -279,15 +321,15 @@ class ModelTrainer:
         y_val_pred = model.predict(X_val)
         y_val_proba = model.predict_proba(X_val)
         val_metrics = eval_utils.classification_metrics(y_val, y_val_pred, y_val_proba)
-        history = [
-            {
-                "stage": "fit",
-                "train_score": float(model.score(X_train, y_train)),
-                "validation_accuracy": float(val_metrics["accuracy"]),
-                "elapsed_seconds": train_duration,
-                "metrics": val_metrics,
-            }
-        ]
+        history_entry = {
+            "stage": "fit",
+            "train_score": float(model.score(X_train, y_train)),
+            "validation_accuracy": float(val_metrics["accuracy"]),
+            "elapsed_seconds": train_duration,
+            "metrics": val_metrics,
+        }
+        history = [history_entry]
+        self._emit_progress(progress_callback, {"type": "history", "entry": history_entry})
         return {"validation": val_metrics, "model": model}, history
 
     def _train_random_forest(
@@ -298,6 +340,7 @@ class ModelTrainer:
         y_train: pd.Series,
         X_val: np.ndarray,
         y_val: pd.Series,
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> Tuple[Dict[str, Dict[str, float]], List[Dict[str, Any]]]:
         defaults = {
             "n_estimators": 200,
@@ -320,16 +363,16 @@ class ModelTrainer:
             )
         else:
             val_metrics = eval_utils.regression_metrics(y_val, y_val_pred)
-        history = [
-            {
-                "stage": "fit",
-                "validation_score": val_metrics["accuracy"]
-                if task_type == "classification"
-                else val_metrics["r2"],
-                "elapsed_seconds": duration,
-                "metrics": val_metrics,
-            }
-        ]
+        history_entry = {
+            "stage": "fit",
+            "validation_score": val_metrics["accuracy"]
+            if task_type == "classification"
+            else val_metrics["r2"],
+            "elapsed_seconds": duration,
+            "metrics": val_metrics,
+        }
+        history = [history_entry]
+        self._emit_progress(progress_callback, {"type": "history", "entry": history_entry})
         return {"validation": val_metrics, "model": model}, history
 
     def _train_xgboost(
@@ -340,6 +383,7 @@ class ModelTrainer:
         y_train: pd.Series,
         X_val: np.ndarray,
         y_val: pd.Series,
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> Tuple[Dict[str, Dict[str, float]], List[Dict[str, Any]]]:
         from xgboost import XGBClassifier, XGBRegressor
 
@@ -384,15 +428,23 @@ class ModelTrainer:
                     for i, (train_metric, val_metric) in enumerate(
                         zip(train_series, val_series)
                     ):
-                        history.append(
-                            {
-                                "iteration": i,
-                                "metric": metric_name,
-                                "train_metric": train_metric,
-                                "validation_metric": val_metric,
-                            }
+                        history_entry = {
+                            "iteration": i,
+                            "metric": metric_name,
+                            "train_metric": train_metric,
+                            "validation_metric": val_metric,
+                        }
+                        history.append(history_entry)
+                        self._emit_progress(
+                            progress_callback,
+                            {"type": "history", "entry": history_entry},
                         )
-        history.append({"iteration": len(history), "metrics": val_metrics})
+        summary_entry = {"iteration": len(history), "metrics": val_metrics}
+        history.append(summary_entry)
+        self._emit_progress(
+            progress_callback,
+            {"type": "history", "entry": summary_entry, "final": True},
+        )
         result = {"validation": val_metrics, "model": model}
         if label_encoder is not None:
             result["label_encoder"] = label_encoder
@@ -406,6 +458,7 @@ class ModelTrainer:
         y_train: pd.Series,
         X_val: np.ndarray,
         y_val: pd.Series,
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> Tuple[Dict[str, Dict[str, float]], List[Dict[str, Any]], str]:
         if not TORCH_AVAILABLE:
             return self._train_neural_network_sklearn(
@@ -415,6 +468,7 @@ class ModelTrainer:
                 y_train,
                 X_val,
                 y_val,
+                progress_callback,
             )
         import torch
         from torch import nn
@@ -548,14 +602,14 @@ class ModelTrainer:
                     val_loss = criterion(val_outputs, y_val_tensor).item()
                     val_pred = val_outputs.cpu().numpy()
                     val_metrics = eval_utils.regression_metrics(y_val, val_pred)
-            history.append(
-                {
-                    "epoch": epoch,
-                    "train_loss": float(epoch_loss),
-                    "val_loss": float(val_loss),
-                    "metrics": val_metrics,
-                }
-            )
+            history_entry = {
+                "epoch": epoch,
+                "train_loss": float(epoch_loss),
+                "val_loss": float(val_loss),
+                "metrics": val_metrics,
+            }
+            history.append(history_entry)
+            self._emit_progress(progress_callback, {"type": "history", "entry": history_entry})
         result = {"validation": history[-1]["metrics"], "model": model}
         if label_encoder is not None:
             result["label_encoder"] = label_encoder
@@ -569,6 +623,7 @@ class ModelTrainer:
         y_train: pd.Series,
         X_val: np.ndarray,
         y_val: pd.Series,
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> Tuple[Dict[str, Dict[str, float]], List[Dict[str, Any]], str]:
         params: Dict[str, Any]
         history: List[Dict[str, Any]]
@@ -591,13 +646,13 @@ class ModelTrainer:
             val_metrics = eval_utils.classification_metrics(
                 y_val, y_val_pred, y_val_proba
             )
-            history = [
-                {
-                    "stage": "fit",
-                    "elapsed_seconds": duration,
-                    "metrics": val_metrics,
-                }
-            ]
+            history_entry = {
+                "stage": "fit",
+                "elapsed_seconds": duration,
+                "metrics": val_metrics,
+            }
+            history = [history_entry]
+            self._emit_progress(progress_callback, {"type": "history", "entry": history_entry})
         else:
             params = {
                 "hidden_layer_sizes": (64, 32),
@@ -613,13 +668,13 @@ class ModelTrainer:
             duration = perf_counter() - start
             y_val_pred = model.predict(X_val)
             val_metrics = eval_utils.regression_metrics(y_val, y_val_pred)
-            history = [
-                {
-                    "stage": "fit",
-                    "elapsed_seconds": duration,
-                    "metrics": val_metrics,
-                }
-            ]
+            history_entry = {
+                "stage": "fit",
+                "elapsed_seconds": duration,
+                "metrics": val_metrics,
+            }
+            history = [history_entry]
+            self._emit_progress(progress_callback, {"type": "history", "entry": history_entry})
         return {"validation": val_metrics, "model": model}, history, "sklearn"
 
     def _train_linear_regression(
@@ -629,6 +684,7 @@ class ModelTrainer:
         y_train: pd.Series,
         X_val: np.ndarray,
         y_val: pd.Series,
+        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> Tuple[Dict[str, Dict[str, float]], List[Dict[str, Any]]]:
         model = LinearRegression(**hyperparameters)
         start = perf_counter()
@@ -636,14 +692,14 @@ class ModelTrainer:
         duration = perf_counter() - start
         val_pred = model.predict(X_val)
         val_metrics = eval_utils.regression_metrics(y_val, val_pred)
-        history = [
-            {
-                "stage": "fit",
-                "validation_r2": float(val_metrics["r2"]),
-                "elapsed_seconds": duration,
-                "metrics": val_metrics,
-            }
-        ]
+        history_entry = {
+            "stage": "fit",
+            "validation_r2": float(val_metrics["r2"]),
+            "elapsed_seconds": duration,
+            "metrics": val_metrics,
+        }
+        history = [history_entry]
+        self._emit_progress(progress_callback, {"type": "history", "entry": history_entry})
         return {"validation": val_metrics, "model": model}, history
 
     def _predict(

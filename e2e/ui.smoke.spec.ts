@@ -52,10 +52,18 @@ test.describe('offline UI smoke', () => {
     await captureScreenshot(page, path.join(SCREENSHOT_ROOT, '04_scatter.png'));
 
     await page.getByTestId('train-target').selectOption('species');
-    const eventStreamPromise = waitForEventStream(page, '/model/train', { optional: true, timeout: 10000 });
+    const eventStreamPromise = waitForEventStream(page, '/model/train/stream', {
+      optional: true,
+      timeout: 10000
+    });
     await page.getByTestId('train-button').click();
     await captureScreenshot(page, path.join(SCREENSHOT_ROOT, '05_training-start.png'));
     await eventStreamPromise;
+    const statusIndicator = page.getByTestId('training-status');
+    await expect(statusIndicator).toBeVisible({ timeout: 30000 });
+    const livePlotContainer = page.getByTestId('training-history-plot');
+    await waitForPlotlyCanvas(livePlotContainer.locator('.js-plotly-plot').first(), { timeout: 120000 });
+    await expect(page.getByTestId('latest-epoch')).toContainText(/Latest update/i, { timeout: 120000 });
     await expect(page.locator('.notification')).toContainText(/Model trained successfully/i, { timeout: 120000 });
     await expect(page.getByTestId('metrics-summary')).toBeVisible({ timeout: 120000 });
     await captureScreenshot(page, path.join(SCREENSHOT_ROOT, '06_training-complete.png'));

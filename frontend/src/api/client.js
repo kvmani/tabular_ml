@@ -196,11 +196,27 @@ export async function getHealth() {
   return request('/health');
 }
 
+const serialisePayload = (payload) => {
+  const entries = Object.entries(payload).filter(([, value]) => value !== undefined);
+  return JSON.stringify(Object.fromEntries(entries));
+};
+
 export async function trainModel(payload) {
   return request('/model/train', {
     method: 'POST',
     body: JSON.stringify(payload)
   });
+}
+
+const buildStreamQuery = (payload) => {
+  const serialised = serialisePayload(payload);
+  return encodeURIComponent(serialised);
+};
+
+export function openTrainingStream(payload) {
+  const query = buildStreamQuery(payload);
+  const url = buildUrl(`/model/train/stream?payload=${query}`);
+  return new EventSource(url, { withCredentials: true });
 }
 
 export async function evaluateModel(modelId) {

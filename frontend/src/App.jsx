@@ -73,6 +73,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [systemConfig, setSystemConfig] = useState(null);
   const [allowUploads, setAllowUploads] = useState(true);
+  const [liveHistory, setLiveHistory] = useState([]);
   const prefetchedDatasetId = useRef(null);
 
   const { message, variant, notify } = useNotification();
@@ -211,6 +212,7 @@ export default function App() {
     setModelId('');
     setMetrics(null);
     setEvaluation(null);
+    setLiveHistory([]);
   }, [currentDatasetId]);
 
   const handleDatasetSelect = async (datasetId) => {
@@ -257,6 +259,7 @@ export default function App() {
     setSplitId(result.split_id);
     setMetrics(result.metrics);
     setEvaluation(null);
+    setLiveHistory(result.history || []);
   };
 
   const handleEvaluate = async () => {
@@ -322,6 +325,7 @@ export default function App() {
         algorithms={algorithms}
         onTrainingComplete={handleTrainingComplete}
         onNotify={notify}
+        onProgress={setLiveHistory}
         disabled={!currentDatasetId || loading}
       />
       <EvaluationPanel
@@ -329,6 +333,7 @@ export default function App() {
         metrics={metrics}
         evaluation={evaluation}
         onEvaluate={handleEvaluate}
+        streamedHistory={liveHistory}
         disabled={loading}
       />
       <SystemConfigPanel config={systemConfig} />
