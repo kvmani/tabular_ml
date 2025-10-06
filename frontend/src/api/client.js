@@ -219,6 +219,17 @@ export function openTrainingStream(payload) {
   return new EventSource(url, { withCredentials: true });
 }
 
+export function openLogStream(level = 'INFO') {
+  const params = new URLSearchParams();
+  if (level) {
+    params.set('level', level.toUpperCase());
+  }
+  const query = params.toString();
+  const path = query ? `/system/logs/stream?${query}` : '/system/logs/stream';
+  const url = buildUrl(path);
+  return new EventSource(url, { withCredentials: true });
+}
+
 export async function evaluateModel(modelId) {
   return request('/model/evaluate', {
     method: 'POST',

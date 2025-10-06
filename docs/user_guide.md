@@ -27,6 +27,14 @@ This guide documents the end-to-end flow validated for the default Titanic datas
 
 The System Configuration API exposes `settings.app.allow_file_uploads`. The dataset hook mirrors this flag into the UI banner and upload form, so administrators immediately see when uploads are disabled (as in air-gapped environments) and can rely on the bundled datasets instead.
 
+## Live Logs console
+
+- The bottom drawer labelled **“Show Live Logs”** reveals an accessible log console that streams backend log events via `/system/logs/stream`.
+- Each entry includes the ISO-8601 timestamp, severity icon (ℹ️ info, ⚠️ warning, ❌ error, 🐞 debug), and logger name so operators can correlate events.
+- Use the level checkboxes to filter what is rendered. Debug messages require enabling the **Debug** checkbox, which re-subscribes with `?level=DEBUG`.
+- Controls along the header allow you to pause/resume the feed, clear the buffer, and toggle auto-scroll. When paused, events are buffered and replayed on resume.
+- The console stores up to 500 entries in-memory (oldest dropped first) and mirrors toast errors so that transient notifications leave an audit trail. Only high-level diagnostics are streamed—no dataset contents or PII leave the server.
+
 ## Troubleshooting
 
 - **Backend reachable?** Use the Configuration panel’s dataset registry list to confirm the frontend is connected to the backend.

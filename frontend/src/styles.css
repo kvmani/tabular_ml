@@ -13,6 +13,7 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   padding: 1.5rem;
+  padding-bottom: 6rem;
 }
 
 header {
@@ -121,6 +122,18 @@ button.secondary {
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .banner {
@@ -292,4 +305,212 @@ button:not(:disabled):hover {
 footer {
   text-align: center;
   margin: 2rem 0 1rem;
+}
+
+.log-console-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transform: translateY(calc(100% - 3rem));
+  transition: transform 0.3s ease;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.log-console-panel--open {
+  transform: translateY(0);
+}
+
+.log-console-panel__inner {
+  width: 100%;
+  max-width: 1200px;
+  pointer-events: auto;
+  box-shadow: 0 -10px 25px rgba(15, 23, 42, 0.22);
+  border-radius: 18px 18px 0 0;
+  overflow: hidden;
+}
+
+.log-console-panel__toggle {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(90deg, #1e3a8a 0%, #2563eb 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.log-console-panel__status {
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.log-console-panel__body {
+  max-height: 60vh;
+  background: #fff;
+}
+
+.log-console {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-size: 0.85rem;
+}
+
+.log-console__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: #f8fafc;
+}
+
+.log-console__title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.log-console__title h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.log-console__status {
+  font-size: 0.8rem;
+  color: #1e3a8a;
+  text-transform: capitalize;
+}
+
+.log-console__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.log-console__button {
+  background: #1e3a8a;
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.log-console__button:hover {
+  box-shadow: none;
+}
+
+.log-console__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.log-console__levels {
+  display: flex;
+  gap: 0.75rem;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.log-console__level {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.log-console__body {
+  flex: 1;
+  overflow: auto;
+  background: #fff;
+  padding: 0.75rem 1rem;
+}
+
+.log-console__empty {
+  color: #475569;
+  font-style: italic;
+}
+
+.log-entry {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-left: 4px solid transparent;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  font-family: 'Source Code Pro', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  background-color: #f8fafc;
+  word-break: break-word;
+}
+
+.log-entry:last-child {
+  margin-bottom: 0;
+}
+
+.log-entry__icon {
+  font-size: 1.1rem;
+  line-height: 1.3rem;
+}
+
+.log-entry__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.log-entry__message {
+  white-space: pre-wrap;
+}
+
+.log-entry__logger {
+  font-weight: 600;
+}
+
+.log-console__footer {
+  padding: 0.65rem 1rem;
+  border-top: 1px solid rgba(220, 38, 38, 0.3);
+  background: #fef2f2;
+  color: #991b1b;
+  font-weight: 600;
+}
+
+.log-info {
+  border-color: #2563eb;
+  background-color: #eff6ff;
+}
+
+.log-warn {
+  border-color: #f59e0b;
+  background-color: #fff7ed;
+}
+
+.log-error {
+  border-color: #dc2626;
+  background-color: #fef2f2;
+}
+
+.log-debug {
+  border-color: #6366f1;
+  background-color: #eef2ff;
+}
+
+.log-entry__module {
+  font-style: italic;
 }
