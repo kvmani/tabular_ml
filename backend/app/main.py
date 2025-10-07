@@ -9,6 +9,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 
+from backend.app.core.logging import (
+    ErrorLoggingMiddleware,
+    configure_stream_logging,
+    install_exception_logging,
+)
 from backend.app.core.security import CSPMiddleware, CSRFMiddleware
 from backend.app.api.routes import data, modeling, preprocess, system, visualization
 from backend.app.log_stream import LogStreamHandler, log_stream_manager
@@ -45,8 +50,9 @@ def _cors_origins() -> List[str]:
 
 def create_app() -> FastAPI:
     app = FastAPI(title=settings.app.name, debug=settings.app.debug)
+    install_exception_logging(app)
     log_handler = LogStreamHandler(log_stream_manager)
-    logging.getLogger().addHandler(log_handler)
+    attached_loggers = configure_stream_logging(log_handler)
     app.state.log_stream_handler = log_handler
 
     app.add_middleware(
@@ -66,6 +72,7 @@ def create_app() -> FastAPI:
         enabled=settings.security.csp_enabled,
         policy=settings.security.csp_policy,
     )
+    app.add_middleware(ErrorLoggingMiddleware)
     app.include_router(system.router)
     app.include_router(data.router)
     app.include_router(preprocess.router)
@@ -74,7 +81,9 @@ def create_app() -> FastAPI:
 
     @app.on_event("shutdown")
     async def _remove_log_handler() -> None:
-        logging.getLogger().removeHandler(log_handler)
+        for logger in attached_loggers:
+            if log_handler in logger.handlers:
+                logger.removeHandler(log_handler)
 
     @app.get("/")
     def read_root() -> dict:
