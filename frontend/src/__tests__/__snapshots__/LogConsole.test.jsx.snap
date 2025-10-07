@@ -38,6 +38,50 @@ exports[`LogConsole > renders mixed severity entries 1`] = `
       </div>
     </div>
     <div
+      class="log-console__notice log-console__notice--connection"
+      role="alert"
+    >
+      <span
+        aria-hidden="true"
+      >
+        🔌
+      </span>
+      <div>
+        <strong>
+          Connection issue:
+        </strong>
+         
+        Connection interrupted. Attempting to reconnect…
+      </div>
+    </div>
+    <div
+      class="log-console__notice log-console__notice--warning"
+      role="status"
+    >
+      <span
+        aria-hidden="true"
+      >
+        ⚠️
+      </span>
+      <div>
+        <strong>
+          Backpressure detected:
+        </strong>
+         
+        Log stream backlog reached capacity; oldest entries were discarded.
+        <div
+          class="log-console__notice-actions"
+        >
+          <button
+            class="log-console__button"
+            type="button"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
+    <div
       class="log-console__controls"
     >
       <fieldset

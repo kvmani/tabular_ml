@@ -28,6 +28,8 @@ export default function LogConsole({ stream }) {
     logs,
     connectionState,
     lastError,
+    lastConnectionError,
+    backlogWarning,
     isPaused,
     autoScroll,
     setAutoScroll,
@@ -35,7 +37,8 @@ export default function LogConsole({ stream }) {
     setIncludeDebug,
     clear,
     pause,
-    resume
+    resume,
+    acknowledgeBacklogWarning
   } = logStream;
 
   const [levelFilters, setLevelFilters] = useState(() => ({
@@ -91,6 +94,12 @@ export default function LogConsole({ stream }) {
     setAutoScroll(!autoScroll);
   };
 
+  const handleBacklogDismiss = () => {
+    if (acknowledgeBacklogWarning) {
+      acknowledgeBacklogWarning();
+    }
+  };
+
   return (
     <div className="log-console">
       <div className="log-console__header">
@@ -109,6 +118,27 @@ export default function LogConsole({ stream }) {
           </button>
         </div>
       </div>
+      {lastConnectionError && (
+        <div className="log-console__notice log-console__notice--connection" role="alert">
+          <span aria-hidden="true">🔌</span>
+          <div>
+            <strong>Connection issue:</strong> {lastConnectionError}
+          </div>
+        </div>
+      )}
+      {backlogWarning && (
+        <div className="log-console__notice log-console__notice--warning" role="status">
+          <span aria-hidden="true">⚠️</span>
+          <div>
+            <strong>Backpressure detected:</strong> {backlogWarning.message}
+            <div className="log-console__notice-actions">
+              <button type="button" className="log-console__button" onClick={handleBacklogDismiss}>
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="log-console__controls">
         <fieldset className="log-console__levels">
           <legend className="sr-only">Severity filters</legend>

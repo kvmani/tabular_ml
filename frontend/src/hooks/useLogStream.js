@@ -10,6 +10,8 @@ export default function useLogStream(options = {}) {
   const [logs, setLogs] = useState([]);
   const [connectionState, setConnectionState] = useState('idle');
   const [lastError, setLastError] = useState(null);
+  const [lastConnectionError, setLastConnectionError] = useState(null);
+  const [backlogWarning, setBacklogWarning] = useState(null);
   const [isPaused, setIsPaused] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const [includeDebug, setIncludeDebug] = useState(includeDebugInitial);
@@ -76,6 +78,16 @@ export default function useLogStream(options = {}) {
   const pushLog = useCallback(
     (entry) => {
       const normalised = normaliseEntry(entry);
+      if (
+        normalised.logger === 'log_stream' &&
+        typeof normalised.message === 'string' &&
+        /backlog/i.test(normalised.message)
+      ) {
+        setBacklogWarning({
+          message: normalised.message,
+          timestamp: normalised.timestamp,
+        });
+      }
       if (isPausedRef.current) {
         const next = pausedBufferRef.current.concat(normalised);
         if (next.length > capacity) {
@@ -99,17 +111,20 @@ export default function useLogStream(options = {}) {
   useEffect(() => {
     setConnectionState('connecting');
     setLastError(null);
+    setLastConnectionError(null);
 
     const source = openLogStream(includeDebug ? 'DEBUG' : 'INFO');
     eventSourceRef.current = source;
 
     source.onopen = () => {
       setConnectionState('open');
+      setLastConnectionError(null);
     };
 
     source.onerror = () => {
       setConnectionState('reconnecting');
-      setLastError('Connection interrupted. Attempting to reconnect…');
+      const message = 'Connection interrupted. Attempting to reconnect…';
+      setLastConnectionError(message);
     };
 
     const handleLog = (event) => {
@@ -142,11 +157,22 @@ export default function useLogStream(options = {}) {
       logs,
       connectionState,
       lastError,
+      lastConnectionError,
+      backlogWarning,
       isPaused,
       autoScroll,
       includeDebug,
     }),
-    [logs, connectionState, lastError, isPaused, autoScroll, includeDebug]
+    [
+      logs,
+      connectionState,
+      lastError,
+      lastConnectionError,
+      backlogWarning,
+      isPaused,
+      autoScroll,
+      includeDebug
+    ]
   );
 
   return {
@@ -157,5 +183,6 @@ export default function useLogStream(options = {}) {
     pause,
     resume,
     pushLog,
+    acknowledgeBacklogWarning: () => setBacklogWarning(null)
   };
 }

@@ -82,3 +82,18 @@
 
 **Notes:**
 - The automation starts both backend and frontend servers via Playwright `webServer`; ensure ports 8000/5173 are free before running locally.
+
+## Streaming log instrumentation
+**Task date:** 2025-02-14
+**Task name:** streaming-log-instrumentation
+**Details of issues resolved or features added:**
+- Instrumented preprocessing, training, evaluation, and data management services with structured INFO/WARNING logs so the SSE pipeline surfaces meaningful backend activity.
+- Hardened the log stream by surfacing backlog warnings in the React console, exposing connection health, and extending unit coverage for the `useLogStream` hook and SSE manager.
+- Documented the `/system/logs/stream` contract, including backlog warning semantics, and refreshed frontend styling to highlight connection issues.
+
+**Verification artifacts:**
+- Screenshots: n/a (browser tooling unavailable in this environment).
+- Test summary: `npm --prefix frontend run test:unit -- src/__tests__/LogConsole.test.jsx -u`; `npm --prefix frontend run test:unit -- src/__tests__/useLogStream.test.js`; `pytest tests/backend/test_log_stream.py` (fails: pandas missing in execution image).
+
+**Notes:**
+- Python unit tests currently require `pandas`; install dependencies (`pip install -r REQUIREMENTS.txt`) before re-running `pytest tests/backend/test_log_stream.py` locally.
