@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import logging
 from dataclasses import dataclass
 from time import perf_counter
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -23,6 +24,9 @@ from config import settings
 from backend.app.models.storage import DataSplit, ModelArtifact
 from backend.app.services import evaluation as eval_utils
 from backend.app.services.preprocess import split_dataset
+
+
+logger = logging.getLogger(__name__)
 
 
 def _torch_available() -> bool:
@@ -93,162 +97,249 @@ class ModelTrainer:
         split: Optional[DataSplit] = None,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> TrainingResult:
+        logger.info(
+            "Starting %s training for dataset %s (task=%s, target=%s).",
+            algorithm,
+            dataset_id,
+            task_type,
+            target_column,
+        )
         if algorithm not in self.algorithm_catalog:
+            logger.error("Unsupported algorithm '%s' requested.", algorithm)
             raise ValueError(f"Unsupported algorithm '{algorithm}'")
         if task_type not in self.algorithm_catalog[algorithm]["task_types"]:
+            logger.error(
+                "Algorithm '%s' does not support task type '%s'.",
+                algorithm,
+                task_type,
+            )
             raise ValueError(
                 f"Algorithm '{algorithm}' does not support task type '{task_type}'"
             )
+
         hyperparameters = hyperparameters or {}
 
-        if split is None:
-            split = split_dataset(
-                df,
-                target_column=target_column,
+        try:
+            if split is None:
+                test_size = hyperparameters.pop("test_size", 0.2)
+                val_size = hyperparameters.pop("val_size", 0.2)
+                stratify = hyperparameters.pop(
+                    "stratify", task_type == "classification"
+                )
+                logger.info(
+                    "Creating train/validation/test split for dataset %s (test_size=%.2f, val_size=%.2f, stratify=%s).",
+                    dataset_id,
+                    test_size,
+                    val_size,
+                    stratify,
+                )
+                split = split_dataset(
+                    df,
+                    target_column=target_column,
+                    task_type=task_type,
+                    test_size=test_size,
+                    val_size=val_size,
+                    random_state=hyperparameters.get("random_state", 42),
+                    stratify=stratify,
+                )
+            else:
+                logger.info(
+                    "Using provided split %s for dataset %s.",
+                    split.split_id,
+                    dataset_id,
+                )
+            split.dataset_id = dataset_id
+
+            X_train = split.X_train.reset_index(drop=True)
+            X_val = split.X_val.reset_index(drop=True)
+            X_test = split.X_test.reset_index(drop=True)
+            y_train = split.y_train.reset_index(drop=True)
+            y_val = split.y_val.reset_index(drop=True)
+            y_test = split.y_test.reset_index(drop=True)
+
+            scale_numeric = algorithm in SCALE_NUMERIC_ALGORITHMS
+            preprocessor = self._build_preprocessor(
+                X_train, scale_numeric=scale_numeric
+            )
+            self._emit_progress(
+                progress_callback, {"type": "status", "stage": "preprocessing"}
+            )
+            logger.info("Fitting preprocessing pipeline for dataset %s.", dataset_id)
+            preprocessor.fit(X_train)
+            X_train_proc = preprocessor.transform(X_train)
+            X_val_proc = preprocessor.transform(X_val)
+            X_test_proc = preprocessor.transform(X_test)
+            logger.info(
+                "Preprocessing complete for dataset %s (scale_numeric=%s).",
+                dataset_id,
+                scale_numeric,
+            )
+
+            history: List[Dict[str, Any]] = []
+            metrics: Dict[str, Dict[str, float]]
+            model_object: Dict[str, Any]
+
+            if algorithm == "logistic_regression":
+                logger.info(
+                    "Training logistic regression model for dataset %s.", dataset_id
+                )
+                artifact_metrics, history = self._train_logistic(
+                    hyperparameters,
+                    X_train_proc,
+                    y_train,
+                    X_val_proc,
+                    y_val,
+                    progress_callback,
+                )
+                model_object = {
+                    "type": "sklearn",
+                    "model": artifact_metrics.pop("model"),
+                    "preprocessor": preprocessor,
+                }
+                metrics = artifact_metrics
+                logger.info(
+                    "Logistic regression training finished for dataset %s.",
+                    dataset_id,
+                )
+            elif algorithm == "random_forest":
+                logger.info("Training random forest model for dataset %s.", dataset_id)
+                artifact_metrics, history = self._train_random_forest(
+                    task_type,
+                    hyperparameters,
+                    X_train_proc,
+                    y_train,
+                    X_val_proc,
+                    y_val,
+                    progress_callback,
+                )
+                model_object = {
+                    "type": "sklearn",
+                    "model": artifact_metrics.pop("model"),
+                    "preprocessor": preprocessor,
+                }
+                metrics = artifact_metrics
+                logger.info(
+                    "Random forest training finished for dataset %s.", dataset_id
+                )
+            elif algorithm == "xgboost":
+                logger.info("Training XGBoost model for dataset %s.", dataset_id)
+                artifact_metrics, history = self._train_xgboost(
+                    task_type,
+                    hyperparameters,
+                    X_train_proc,
+                    y_train,
+                    X_val_proc,
+                    y_val,
+                    progress_callback,
+                )
+                model_object = {
+                    "type": "sklearn",
+                    "model": artifact_metrics.pop("model"),
+                    "preprocessor": preprocessor,
+                    "label_encoder": artifact_metrics.pop("label_encoder", None),
+                }
+                metrics = artifact_metrics
+                logger.info("XGBoost training finished for dataset %s.", dataset_id)
+            elif algorithm == "neural_network":
+                logger.info("Training neural network model for dataset %s.", dataset_id)
+                artifact_metrics, history, model_type = self._train_neural_network(
+                    task_type,
+                    hyperparameters,
+                    X_train_proc,
+                    y_train,
+                    X_val_proc,
+                    y_val,
+                    progress_callback,
+                )
+                model_object = {
+                    "type": model_type,
+                    "model": artifact_metrics.pop("model"),
+                    "preprocessor": preprocessor,
+                    "label_encoder": artifact_metrics.pop("label_encoder", None),
+                }
+                if model_type == "pytorch":
+                    model_object["input_dim"] = X_train_proc.shape[1]
+                metrics = artifact_metrics
+                logger.info(
+                    "%s neural network training finished for dataset %s.",
+                    model_type.upper(),
+                    dataset_id,
+                )
+            elif algorithm == "linear_regression":
+                logger.info(
+                    "Training linear regression model for dataset %s.", dataset_id
+                )
+                artifact_metrics, history = self._train_linear_regression(
+                    hyperparameters,
+                    X_train_proc,
+                    y_train,
+                    X_val_proc,
+                    y_val,
+                    progress_callback,
+                )
+                model_object = {
+                    "type": "sklearn",
+                    "model": artifact_metrics.pop("model"),
+                    "preprocessor": preprocessor,
+                }
+                metrics = artifact_metrics
+                logger.info(
+                    "Linear regression training finished for dataset %s.",
+                    dataset_id,
+                )
+            else:
+                logger.error("Algorithm '%s' is not implemented.", algorithm)
+                raise ValueError(f"Algorithm '{algorithm}' is not implemented")
+
+            # Evaluate on test data using stored objects
+            y_test_pred, proba_test = self._predict(model_object, X_test_proc)
+            if task_type == "classification":
+                test_metrics = eval_utils.classification_metrics(
+                    y_test, y_test_pred, proba_test
+                )
+            else:
+                test_metrics = eval_utils.regression_metrics(y_test, y_test_pred)
+            metrics["test"] = test_metrics
+            logger.info(
+                "Test evaluation for dataset %s completed with metrics: %s",
+                dataset_id,
+                test_metrics,
+            )
+
+            model_id = uuid4().hex
+            artifact = ModelArtifact(
+                model_id=model_id,
+                algorithm=algorithm,
                 task_type=task_type,
-                test_size=hyperparameters.pop("test_size", 0.2),
-                val_size=hyperparameters.pop("val_size", 0.2),
-                random_state=hyperparameters.get("random_state", 42),
-                stratify=hyperparameters.pop("stratify", task_type == "classification"),
+                target_column=target_column,
+                feature_columns=split.feature_columns,
+                model_object=model_object,
+                metrics=metrics,
+                history=history,
+                split_id=split.split_id,
             )
-        split.dataset_id = dataset_id
-
-        X_train = split.X_train.reset_index(drop=True)
-        X_val = split.X_val.reset_index(drop=True)
-        X_test = split.X_test.reset_index(drop=True)
-        y_train = split.y_train.reset_index(drop=True)
-        y_val = split.y_val.reset_index(drop=True)
-        y_test = split.y_test.reset_index(drop=True)
-
-        scale_numeric = algorithm in SCALE_NUMERIC_ALGORITHMS
-        preprocessor = self._build_preprocessor(X_train, scale_numeric=scale_numeric)
-        self._emit_progress(progress_callback, {"type": "status", "stage": "preprocessing"})
-        preprocessor.fit(X_train)
-        X_train_proc = preprocessor.transform(X_train)
-        X_val_proc = preprocessor.transform(X_val)
-        X_test_proc = preprocessor.transform(X_test)
-
-        history: List[Dict[str, Any]] = []
-        metrics: Dict[str, Dict[str, float]]
-        model_object: Dict[str, Any]
-
-        if algorithm == "logistic_regression":
-            artifact_metrics, history = self._train_logistic(
-                hyperparameters,
-                X_train_proc,
-                y_train,
-                X_val_proc,
-                y_val,
+            self._emit_progress(
                 progress_callback,
+                {
+                    "type": "completed",
+                    "model_id": model_id,
+                    "metrics": metrics,
+                    "history_length": len(history),
+                },
             )
-            model_object = {
-                "type": "sklearn",
-                "model": artifact_metrics.pop("model"),
-                "preprocessor": preprocessor,
-            }
-            metrics = artifact_metrics
-        elif algorithm == "random_forest":
-            artifact_metrics, history = self._train_random_forest(
-                task_type,
-                hyperparameters,
-                X_train_proc,
-                y_train,
-                X_val_proc,
-                y_val,
-                progress_callback,
+            logger.info(
+                "Training run succeeded for dataset %s with model %s.",
+                dataset_id,
+                model_id,
             )
-            model_object = {
-                "type": "sklearn",
-                "model": artifact_metrics.pop("model"),
-                "preprocessor": preprocessor,
-            }
-            metrics = artifact_metrics
-        elif algorithm == "xgboost":
-            artifact_metrics, history = self._train_xgboost(
-                task_type,
-                hyperparameters,
-                X_train_proc,
-                y_train,
-                X_val_proc,
-                y_val,
-                progress_callback,
+            return TrainingResult(artifact=artifact, split=split)
+        except Exception:
+            logger.exception(
+                "Training failed for dataset %s with algorithm %s.",
+                dataset_id,
+                algorithm,
             )
-            model_object = {
-                "type": "sklearn",
-                "model": artifact_metrics.pop("model"),
-                "preprocessor": preprocessor,
-                "label_encoder": artifact_metrics.pop("label_encoder", None),
-            }
-            metrics = artifact_metrics
-        elif algorithm == "neural_network":
-            artifact_metrics, history, model_type = self._train_neural_network(
-                task_type,
-                hyperparameters,
-                X_train_proc,
-                y_train,
-                X_val_proc,
-                y_val,
-                progress_callback,
-            )
-            model_object = {
-                "type": model_type,
-                "model": artifact_metrics.pop("model"),
-                "preprocessor": preprocessor,
-                "label_encoder": artifact_metrics.pop("label_encoder", None),
-            }
-            if model_type == "pytorch":
-                model_object["input_dim"] = X_train_proc.shape[1]
-            metrics = artifact_metrics
-        elif algorithm == "linear_regression":
-            artifact_metrics, history = self._train_linear_regression(
-                hyperparameters,
-                X_train_proc,
-                y_train,
-                X_val_proc,
-                y_val,
-                progress_callback,
-            )
-            model_object = {
-                "type": "sklearn",
-                "model": artifact_metrics.pop("model"),
-                "preprocessor": preprocessor,
-            }
-            metrics = artifact_metrics
-        else:
-            raise ValueError(f"Algorithm '{algorithm}' is not implemented")
-
-        # Evaluate on test data using stored objects
-        y_test_pred, proba_test = self._predict(model_object, X_test_proc)
-        if task_type == "classification":
-            test_metrics = eval_utils.classification_metrics(
-                y_test, y_test_pred, proba_test
-            )
-        else:
-            test_metrics = eval_utils.regression_metrics(y_test, y_test_pred)
-        metrics["test"] = test_metrics
-
-        model_id = uuid4().hex
-        artifact = ModelArtifact(
-            model_id=model_id,
-            algorithm=algorithm,
-            task_type=task_type,
-            target_column=target_column,
-            feature_columns=split.feature_columns,
-            model_object=model_object,
-            metrics=metrics,
-            history=history,
-            split_id=split.split_id,
-        )
-        self._emit_progress(
-            progress_callback,
-            {
-                "type": "completed",
-                "model_id": model_id,
-                "metrics": metrics,
-                "history_length": len(history),
-            },
-        )
-        return TrainingResult(artifact=artifact, split=split)
+            raise
 
     # ------------------------------------------------------------------
     # Internal helpers

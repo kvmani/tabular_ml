@@ -96,6 +96,8 @@ describe('useLogStream', () => {
     expect(result.current.logs).toHaveLength(2);
     expect(result.current.logs[0].message).toBe('Second');
     expect(result.current.logs[1].level).toBe('ERROR');
+    expect(result.current.backlogWarning).toBeNull();
+    expect(result.current.lastConnectionError).toBeNull();
   });
 
   it('buffers logs while paused and flushes when resumed', () => {
@@ -154,5 +156,52 @@ describe('useLogStream', () => {
     rerender({ includeDebug: true });
 
     expect(openLogStream).toHaveBeenLastCalledWith('DEBUG');
+  });
+
+  it('surfaces backlog warnings and allows acknowledgement', () => {
+    const { result } = renderHook(() => useLogStream());
+    const source = MockEventSource.instances[0];
+
+    act(() => {
+      source.emit(
+        'log',
+        JSON.stringify({
+          level: 'WARNING',
+          message: 'Log stream backlog reached capacity; oldest entries were discarded.',
+          timestamp: '2024-01-01T00:00:05Z',
+          logger: 'log_stream',
+          module: 'log_stream'
+        })
+      );
+    });
+
+    expect(result.current.backlogWarning).toEqual({
+      message: 'Log stream backlog reached capacity; oldest entries were discarded.',
+      timestamp: '2024-01-01T00:00:05Z'
+    });
+
+    act(() => {
+      result.current.acknowledgeBacklogWarning();
+    });
+
+    expect(result.current.backlogWarning).toBeNull();
+  });
+
+  it('tracks connection interruptions separately from parse errors', () => {
+    const { result } = renderHook(() => useLogStream());
+    const source = MockEventSource.instances[0];
+
+    act(() => {
+      source.dispatchError();
+    });
+
+    expect(result.current.lastConnectionError).toBe('Connection interrupted. Attempting to reconnect…');
+    expect(result.current.lastError).toBeNull();
+
+    act(() => {
+      source.emit('log', 'not-json');
+    });
+
+    expect(result.current.lastError).toContain('Failed to parse log event');
   });
 });

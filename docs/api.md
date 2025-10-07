@@ -60,6 +60,19 @@ Loads the dataset identified by `{key}` (e.g., `titanic`) into the in-memory sto
 ### `GET /system/config`
 Returns the active runtime configuration merged from YAML + environment overrides. The `settings.app.allow_file_uploads` flag drives the "Uploads enabled" banner in the UI, and the dataset registry mirror helps users discover bundled datasets.
 
+## Log streaming
+
+### `GET /system/logs/stream`
+Streams structured application log events over Server-Sent Events (SSE). Clients must keep the HTTP connection open and listen for `event: log` messages, each containing a JSON payload with the following shape:
+
+```text
+event: log
+data: {"level":"INFO","message":"Starting random_forest training for dataset 123...","timestamp":"2025-02-14T12:35:11.238594+00:00","logger":"backend.app.services.model_training","module":"model_training"}
+
+```
+
+The `level` field honours standard logging severities (`DEBUG`, `INFO`, `WARNING`, `ERROR`). When the backend detects that connected clients cannot keep up and log entries are dropped, it emits a special backlog warning with `logger: "log_stream"` and a human-readable explanation (e.g., `"Log stream backlog reached capacity; oldest entries were discarded."`). Frontend consumers should surface this warning prominently and may continue to receive subsequent log entries once pressure subsides.
+
 ## Algorithms
 
 ### `GET /model/algorithms`

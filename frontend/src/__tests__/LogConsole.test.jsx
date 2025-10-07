@@ -40,6 +40,11 @@ const baseStream = {
   ],
   connectionState: 'open',
   lastError: null,
+  lastConnectionError: 'Connection interrupted. Attempting to reconnect…',
+  backlogWarning: {
+    message: 'Log stream backlog reached capacity; oldest entries were discarded.',
+    timestamp: '2024-01-01T00:00:05Z'
+  },
   isPaused: false,
   autoScroll: true,
   includeDebug: true,
@@ -47,7 +52,8 @@ const baseStream = {
   setIncludeDebug: vi.fn(),
   clear: vi.fn(),
   pause: vi.fn(),
-  resume: vi.fn()
+  resume: vi.fn(),
+  acknowledgeBacklogWarning: vi.fn()
 };
 
 describe('LogConsole', () => {

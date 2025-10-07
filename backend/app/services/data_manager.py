@@ -17,6 +17,9 @@ from backend.app.services.data_augment import augment_dataset
 from backend.app.utils.dataset_registry import SAMPLE_DATASETS
 
 
+logger = logging.getLogger(__name__)
+
+
 class DataManager:
     """Singleton-style in-memory storage for datasets, splits, and models."""
 
@@ -104,6 +107,13 @@ class DataManager:
             raise ValueError(
                 f"Dataset has {df.shape[1]} columns which exceeds the limit of {settings.limits.max_cols}."
             )
+        logger.info(
+            "Creating dataset '%s' from source '%s' with %s rows and %s columns.",
+            name,
+            source,
+            df.shape[0],
+            df.shape[1],
+        )
         dataset_id = uuid4().hex
         metadata = DatasetMetadata(
             dataset_id=dataset_id,
@@ -118,6 +128,7 @@ class DataManager:
         with self._lock:
             self._datasets[dataset_id] = df
             self._metadata[dataset_id] = metadata
+        logger.info("Dataset '%s' stored with id %s.", name, dataset_id)
         return metadata
 
     def list_datasets(self) -> List[Dict[str, object]]:
@@ -125,7 +136,9 @@ class DataManager:
 
         self.ensure_default_dataset()
         with self._lock:
-            return [asdict(meta) for meta in self._metadata.values()]
+            datasets = [asdict(meta) for meta in self._metadata.values()]
+        logger.info("Listing %s datasets from in-memory store.", len(datasets))
+        return datasets
 
     def get_dataset(self, dataset_id: str) -> pd.DataFrame:
         try:
@@ -144,6 +157,7 @@ class DataManager:
     ) -> DatasetMetadata:
         """Create a copy of an existing dataset with optional new description."""
 
+        logger.info("Cloning dataset %s with suffix '%s'.", dataset_id, name_suffix)
         df = self.get_dataset(dataset_id).copy()
         source = f"derived:{dataset_id}"
         metadata = self.create_dataset(
@@ -172,16 +186,19 @@ class DataManager:
                     "synthetic_available": self.synthetic_cfg.enable,
                 }
             )
+        logger.info("Returning %s registered sample datasets.", len(samples))
         return samples
 
     def load_sample_dataset(self, key: str) -> DatasetMetadata:
         if key not in self.sample_datasets:
+            logger.error("Attempted to load unknown sample dataset '%s'.", key)
             raise KeyError(f"Unknown sample dataset: {key}")
         dataset = self.sample_datasets[key]
         if not dataset.path.exists():
             raise FileNotFoundError(
                 f"Sample dataset file missing: {dataset.path}. Please ensure datasets are bundled."
             )
+        logger.info("Loading sample dataset '%s' from %s.", key, dataset.path)
         if dataset.path.suffix.lower() == ".csv":
             df = pd.read_csv(dataset.path)
         else:
@@ -217,6 +234,11 @@ class DataManager:
                 }
             )
             metadata.extras["augmented_dataset_id"] = augmented_metadata.dataset_id
+            logger.info(
+                "Augmented sample dataset '%s' with %s synthetic rows.",
+                key,
+                len(augmented_df) - len(df),
+            )
         return metadata
 
     # ------------------------------------------------------------------

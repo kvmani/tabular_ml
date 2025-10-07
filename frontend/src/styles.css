@@ -397,6 +397,39 @@ footer {
   gap: 0.5rem;
 }
 
+.log-console__notice {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin: 0.5rem 1rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  background: #f1f5f9;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.log-console__notice > span {
+  font-size: 1.1rem;
+  line-height: 1.4rem;
+}
+
+.log-console__notice--connection {
+  background: #fef2f2;
+  border-color: rgba(185, 28, 28, 0.35);
+  color: #7f1d1d;
+}
+
+.log-console__notice--warning {
+  background: #fff7ed;
+  border-color: rgba(194, 65, 12, 0.4);
+  color: #7c2d12;
+}
+
+.log-console__notice-actions {
+  margin-top: 0.4rem;
+}
+
 .log-console__button {
   background: #1e3a8a;
   border-radius: 8px;
