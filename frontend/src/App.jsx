@@ -84,7 +84,7 @@ export default function App() {
   const [systemConfig, setSystemConfig] = useState(null);
   const [allowUploads, setAllowUploads] = useState(true);
   const [liveHistory, setLiveHistory] = useState([]);
-  const [logsOpen, setLogsOpen] = useState(false);
+  const [logsOpen, setLogsOpen] = useState(true);
   const prefetchedDatasetId = useRef(null);
 
   const logStream = useLogStream();
