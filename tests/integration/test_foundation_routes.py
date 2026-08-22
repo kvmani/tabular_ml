@@ -20,6 +20,7 @@ def test_health_uses_response_envelope(client) -> None:
     assert payload["success"] is True
     assert payload["data"]["service"] == "tabular_ml"
     assert payload["data"]["status"] == "ok"
+    assert payload["data"]["cpu_only"] is True
     assert response.headers["Cache-Control"] == "no-store"
 
 

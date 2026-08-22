@@ -41,6 +41,7 @@ def health() -> tuple[Response, int]:
             "status": state,
             "service": "tabular_ml",
             "version": __version__,
+            "cpu_only": True,
             "dataset_registry_issues": issues,
         },
         status=200 if not issues else 503,

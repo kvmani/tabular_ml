@@ -13,11 +13,10 @@ inference, rich built-in datasets, comprehensive tests, and GitHub publication.
 
 ## Current status
 
-- Phase: 7 — `ml_server` integration.
+- Phase: 9 — GitHub publication.
 - State: in progress.
-- Resume point: commit the completed frontend/dataset milestone, then install
-  and mount the companion blueprint in `ml_server`, add catalog/navigation,
-  smoke tests, setup scripts, and host documentation.
+- Resume point: create and push `kvmani/tabular_ml`, publish tag `v0.1.0`, then
+  push the verified host integration.
 - Target repository: `C:\Users\kvman\PycharmProjects\tabular_ml`.
 - Host repository: `C:\Users\kvman\PycharmProjects\ml_server`.
 - Branch: `main` in both repositories.
@@ -35,6 +34,7 @@ inference, rich built-in datasets, comprehensive tests, and GitHub publication.
 | 2026-08-23 | Do not load user-supplied pickle/joblib files. | Python deserialization is unsafe for untrusted uploads. |
 | 2026-08-23 | Bundle Plotly locally and expose settings per chart. | Interactive, configurable, publication-quality exports without CDNs. |
 | 2026-08-23 | Keep Codex plugin scaffold under `codex/plugins/tabular-ml`. | Preserves exact requested repo path while satisfying normalized plugin naming. |
+| 2026-08-23 | Enforce CPU-only algorithms and dependencies. | The user explicitly requires no GPU runtime or dependency; scikit-learn supplies the complete estimator catalog. |
 
 ## Upstream audit
 
@@ -61,9 +61,9 @@ inference, rich built-in datasets, comprehensive tests, and GitHub publication.
   accessibility, contextual help, and error/progress states.
 - [x] M6 — at least five tracked demo CSV datasets with adjacent metadata,
   checksums, provenance, license, learning goals, and registry tests.
-- [ ] M7 — `ml_server` install, blueprint/catalog integration, setup/docs,
+- [x] M7 — `ml_server` install, blueprint/catalog integration, setup/docs,
   smoke tests, and compatible CSP.
-- [ ] M8 — complete QA: lint/type/test/build/coverage/E2E/package/security,
+- [x] M8 — complete QA: lint/type/test/build/coverage/E2E/package/security,
   visual inspection screenshots, docs, and release readiness.
 - [ ] M9 — GitHub repository creation, push, remote verification, and final
   host repository push.
@@ -115,6 +115,13 @@ distinguish sensitive/ethical teaching considerations from model endorsement.
 | 2026-08-23 | `npm run build` and `npm test` for the React/TypeScript workspace. | Passed production type/build and 4 component/layout tests; Plotly is a lazy same-origin chunk. |
 | 2026-08-23 | `pytest --cov`, `ruff check .`, strict `mypy src`, and `vendor_datasets.py --check` after M5/M6. | Passed: 61 tests, 88.16% branch coverage, 6 tracked datasets verified. |
 | 2026-08-23 | Headed Playwright visual QA at desktop and mobile widths. | Passed landing, workspace, chart/settings, train/evaluate, and predict flows; corrected scroll restoration, desktop nav cascade, intrinsic overflow, CSP, and audit sizing findings. |
+| 2026-08-23 | CPU-only manifest, estimator-origin, and frontend trace policy tests. | Added: rejects GPU/accelerator dependencies and WebGL traces; all registered estimators must come from scikit-learn. |
+| 2026-08-23 | Mounted sibling package in `ml_server`, added catalog/navigation, setup dependency, CSP compatibility, documentation, and smoke coverage. | Passed 18 host tests; committed as `764ff7a`. |
+| 2026-08-23 | Live same-origin host integration on an isolated local port. | Passed catalog discovery, application load, and API health while preserving the user's existing server process. |
+| 2026-08-23 | Final CPU policy and estimator-origin suite. | Passed: 64 backend tests total, 88.16% branch coverage; no accelerator dependency or WebGL trace. |
+| 2026-08-23 | Final frontend type/build and component suite after configurable chart expansion. | Passed production build and 4 tests; SVG/PNG export and all gear settings compile. |
+| 2026-08-23 | Built sdist/wheel in an isolated PEP 517 environment and installed the wheel into a clean smoke environment. | Passed packaged UI, CPU-only health contract, and discovery of all 6 datasets. |
+| 2026-08-23 | Final headed desktop/mobile Playwright pass on the release build. | Passed dataset load, visualization, complete per-chart gear dialog, responsive modal, and zero browser console errors. |
 
 ## Commit policy
 
@@ -135,8 +142,8 @@ splitting only when a milestone becomes too large to review safely.
   offline scientific surface, but recorded as an explicit build budget.
 - Multiclass ROC/PR and explainability payloads can become large; bound points
   and feature counts.
-- Plotly requires inline style attributes for its SVG/canvas layout. The
+- Plotly requires inline style attributes for its SVG layout. The
   companion keeps scripts same-origin while allowing inline styles; host
   integration must preserve that explicit exception.
-- GitHub CLI is not currently visible on PATH; repository creation may require
-  authenticated GitHub API access or browser/credential-manager workflow.
+- GitHub publication requires the existing authenticated Git credential or
+  browser session; credentials must never be printed in command output.

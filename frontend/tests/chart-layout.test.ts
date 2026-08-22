@@ -4,13 +4,17 @@ import type { ChartSettings } from "../src/types";
 
 const settings: ChartSettings = {
   title: "Custom scientific figure",
+  xAxisTitle: "",
+  yAxisTitle: "",
   palette: "Colorblind",
   fontFamily: "Arial, sans-serif",
   fontSize: 15,
+  height: 560,
   background: "#fefefe",
   showGrid: false,
   showLegend: false,
   showAnnotations: true,
+  exportFormat: "svg",
   exportScale: 3,
 };
 
@@ -24,6 +28,7 @@ describe("chartLayout", () => {
     expect(layout.title).toMatchObject({ text: "Custom scientific figure" });
     expect(layout.font).toMatchObject({ family: "Arial, sans-serif", size: 15 });
     expect(layout.paper_bgcolor).toBe("#fefefe");
+    expect(layout.height).toBe(560);
     expect(layout.showlegend).toBe(false);
     expect(layout.xaxis).toMatchObject({
       title: { text: "Observed value" },

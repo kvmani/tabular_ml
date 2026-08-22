@@ -112,7 +112,7 @@ function chartDefinition(result: ChartResult): ChartDefinition {
   }
   if (result.type === "scatter") {
     const color = Array.isArray(data.color) ? strings(data.color) : null;
-    const traces: Data[] = [{ type: "scattergl", mode: "markers", name: "Observations", x: numbers(data.x), y: numbers(data.y), text: color ?? undefined, marker: { size: 7, opacity: 0.7 }, hovertemplate: color ? `%{x}, %{y}<br>${String(data.color_label)}: %{text}<extra></extra>` : "%{x}, %{y}<extra></extra>" }];
+    const traces: Data[] = [{ type: "scatter", mode: "markers", name: "Observations", x: numbers(data.x), y: numbers(data.y), text: color ?? undefined, marker: { size: 7, opacity: 0.7 }, hovertemplate: color ? `%{x}, %{y}<br>${String(data.color_label)}: %{text}<extra></extra>` : "%{x}, %{y}<extra></extra>" }];
     const trend = data.trendline as Record<string, unknown> | null;
     if (trend) traces.push({ type: "scatter", mode: "lines", name: `Linear trend · R² ${Number(trend.r2).toFixed(3)}`, x: numbers(trend.x), y: numbers(trend.y), line: { width: 3, dash: "dash" } });
     return { title: `${String(data.y_label)} vs ${String(data.x_label)}`, subtitle: data.sampled ? `A reproducible sample of ${numbers(data.x).length} from ${String(data.total_points)} usable rows.` : `${String(data.total_points)} usable observations.`, traces, layout: { xaxis: { title: { text: String(data.x_label) } }, yaxis: { title: { text: String(data.y_label) } } } };

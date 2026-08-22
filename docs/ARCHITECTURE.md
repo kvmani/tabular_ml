@@ -84,7 +84,8 @@ It provides:
 - IQR, z-score, and Isolation Forest outliers.
 - Histogram, box, and Pearson correlation payloads.
 - Logistic/Ridge, Random Forest, Gradient Boosting, Extra Trees, SVM
-  classification, sklearn MLP, and optional Torch MLP.
+  classification, sklearn MLP, and an optional Torch MLP. The Torch path is an
+  upstream capability that this repository deliberately did not retain.
 - A single train call with three-fold cross-validation and a small metric set.
 
 This repository separates pure core logic, expands metadata and workflow
@@ -92,6 +93,14 @@ validation, adds Excel, richer semantic typing/preparation, broad estimator and
 metric catalogs, comparison and inference, robust multiclass/regression
 diagnostics, configurable charts, clearer help, safer limits, and substantially
 broader tests.
+
+## CPU-only computation contract
+
+Every supported estimator and analysis path runs on the CPU. The registry uses
+only scikit-learn estimators, explicitly bounds library-level parallel jobs
+where supported, and has no accelerator runtime dependency. Frontend plots use
+non-WebGL trace types. See [CPU_ONLY.md](CPU_ONLY.md) for the enforced manifest
+and test policy.
 
 ## Compatibility contract with ml_server
 
@@ -105,4 +114,3 @@ The host installs this repository in editable or wheel form and registers
 `tabular_ml_bp`. The blueprint owns `/tabular_ml/*`. The host catalog links to
 `/tabular_ml/`, and host tests verify index, health, datasets, and one compact
 training flow.
-

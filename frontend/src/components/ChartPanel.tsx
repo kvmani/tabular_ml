@@ -12,13 +12,17 @@ const PALETTES: Record<string, string[]> = {
 
 const DEFAULTS: ChartSettings = {
   title: "",
+  xAxisTitle: "",
+  yAxisTitle: "",
   palette: "Verdigris",
   fontFamily: "Inter, system-ui, sans-serif",
   fontSize: 13,
+  height: 460,
   background: "#ffffff",
   showGrid: true,
   showLegend: true,
   showAnnotations: true,
+  exportFormat: "svg",
   exportScale: 2,
 };
 
@@ -29,6 +33,7 @@ export function chartLayout(
 ): Partial<Layout> {
   return {
     autosize: true,
+    height: settings.height,
     margin: { l: 64, r: 28, t: 58, b: 58 },
     paper_bgcolor: settings.background,
     plot_bgcolor: settings.background,
@@ -46,11 +51,13 @@ export function chartLayout(
       gridcolor: settings.showGrid ? "#dfe7e2" : "rgba(0,0,0,0)",
       zerolinecolor: "#b8c9c2",
       ...(layout.xaxis ?? {}),
+      ...(settings.xAxisTitle ? { title: { text: settings.xAxisTitle } } : {}),
     },
     yaxis: {
       gridcolor: settings.showGrid ? "#dfe7e2" : "rgba(0,0,0,0)",
       zerolinecolor: "#b8c9c2",
       ...(layout.yaxis ?? {}),
+      ...(settings.yAxisTitle ? { title: { text: settings.yAxisTitle } } : {}),
     },
   };
 }
@@ -90,10 +97,16 @@ export function ChartPanel({
       const Plotly = module.default;
       plotlyRef.current = Plotly;
       const colors = PALETTES[settings.palette] ?? PALETTES.Verdigris;
+      const colorScale = colors.map((color, index) => [
+        index / (colors.length - 1),
+        color,
+      ]);
       const colored = traces.map((trace, index) => {
         const styled = trace as Data & {
           marker?: Record<string, unknown>;
           line?: Record<string, unknown>;
+          colorscale?: unknown;
+          texttemplate?: string;
         };
         return ({
         ...styled,
@@ -111,13 +124,19 @@ export function ChartPanel({
               ? styled.line.color
               : colors[index % colors.length],
         },
+        ...(styled.type === "heatmap"
+          ? {
+              colorscale: colorScale,
+              texttemplate: settings.showAnnotations ? "%{z:.2g}" : "",
+            }
+          : {}),
       });}) as Data[];
       const config: Partial<Config> = {
         responsive: true,
         displaylogo: false,
         modeBarButtonsToRemove: ["lasso2d", "select2d"],
         toImageButtonOptions: {
-          format: "svg",
+          format: settings.exportFormat,
           filename: settings.title || title.toLowerCase().replaceAll(" ", "-"),
           scale: settings.exportScale,
         },
@@ -144,11 +163,16 @@ export function ChartPanel({
   function download() {
     if (!chartRef.current || !plotlyRef.current) return;
     const options = {
-      format: "svg",
+      format: settings.exportFormat,
       filename: settings.title || title.toLowerCase().replaceAll(" ", "-"),
       scale: settings.exportScale,
     } as unknown as Parameters<typeof plotlyRef.current.downloadImage>[1];
     void plotlyRef.current.downloadImage(chartRef.current, options);
+  }
+
+  function resetSettings() {
+    setSettings(DEFAULTS);
+    sessionStorage.removeItem(`chart:${settingsKey}`);
   }
 
   return (
@@ -162,7 +186,7 @@ export function ChartPanel({
           <button
             type="button"
             className="icon-button"
-            aria-label={`Export ${title} as SVG`}
+            aria-label={`Export ${title} as ${settings.exportFormat.toUpperCase()}`}
             onClick={download}
           >
             <Download size={18} aria-hidden="true" />
@@ -232,6 +256,22 @@ export function ChartPanel({
                 </select>
               </label>
               <label>
+                X-axis title
+                <input
+                  value={settings.xAxisTitle}
+                  placeholder="Use chart default"
+                  onChange={(event) => update("xAxisTitle", event.target.value)}
+                />
+              </label>
+              <label>
+                Y-axis title
+                <input
+                  value={settings.yAxisTitle}
+                  placeholder="Use chart default"
+                  onChange={(event) => update("yAxisTitle", event.target.value)}
+                />
+              </label>
+              <label>
                 Font family
                 <select
                   value={settings.fontFamily}
@@ -262,6 +302,30 @@ export function ChartPanel({
                 />
               </label>
               <label>
+                Figure height
+                <input
+                  type="range"
+                  min="320"
+                  max="900"
+                  step="20"
+                  value={settings.height}
+                  onChange={(event) => update("height", Number(event.target.value))}
+                />
+                <span className="range-value">{settings.height} px</span>
+              </label>
+              <label>
+                Export format
+                <select
+                  value={settings.exportFormat}
+                  onChange={(event) =>
+                    update("exportFormat", event.target.value as "svg" | "png")
+                  }
+                >
+                  <option value="svg">SVG · vector</option>
+                  <option value="png">PNG · raster</option>
+                </select>
+              </label>
+              <label>
                 Export scale
                 <select
                   value={settings.exportScale}
@@ -289,12 +353,20 @@ export function ChartPanel({
                 />
                 Show legend
               </label>
+              <label className="switch-row">
+                <input
+                  type="checkbox"
+                  checked={settings.showAnnotations}
+                  onChange={(event) => update("showAnnotations", event.target.checked)}
+                />
+                Show heatmap values
+              </label>
             </div>
             <footer className="modal-actions">
               <button
                 type="button"
                 className="button secondary"
-                onClick={() => setSettings(DEFAULTS)}
+                onClick={resetSettings}
               >
                 Reset
               </button>

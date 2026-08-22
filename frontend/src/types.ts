@@ -129,13 +129,16 @@ export interface TrainingRun {
 
 export interface ChartSettings {
   title: string;
+  xAxisTitle: string;
+  yAxisTitle: string;
   palette: string;
   fontFamily: string;
   fontSize: number;
+  height: number;
   background: string;
   showGrid: boolean;
   showLegend: boolean;
   showAnnotations: boolean;
+  exportFormat: "svg" | "png";
   exportScale: number;
 }
-

@@ -43,6 +43,7 @@ def test_every_supported_algorithm_builds_with_defaults() -> None:
             )
             assert returned is spec
             assert estimator is not None
+            assert estimator.__class__.__module__.startswith("sklearn.")
             assert set(parameters) == {item.name for item in spec.parameters}
 
 
