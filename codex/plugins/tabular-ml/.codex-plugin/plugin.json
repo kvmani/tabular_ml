@@ -1,0 +1,18 @@
+{
+  "name": "tabular-ml",
+  "version": "0.1.0",
+  "description": "Build, test, and integrate the local Tabular ML Workbench",
+  "author": {
+    "name": "tabular_ml contributors"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Tabular ML",
+    "shortDescription": "Develop the local Tabular ML workbench.",
+    "longDescription": "Tabular ML provides repository-local guidance and assets for developing, testing, and integrating a privacy-first visual machine-learning workbench.",
+    "developerName": "tabular_ml contributors",
+    "category": "Developer Tools",
+    "capabilities": ["machine-learning", "data-analysis"],
+    "defaultPrompt": "Help me develop and validate the Tabular ML Workbench."
+  }
+}
