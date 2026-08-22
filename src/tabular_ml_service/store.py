@@ -8,20 +8,17 @@ import time
 from collections import OrderedDict
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Generic, TypeVar
 
 from .errors import ApiError
 
-T = TypeVar("T")
-
 
 @dataclass(slots=True)
-class _Entry(Generic[T]):
+class _Entry[T]:
     value: T
     touched_at: float
 
 
-class BoundedTTLStore(Generic[T]):
+class BoundedTTLStore[T]:
     """Store opaque workflow objects without persisting user data."""
 
     def __init__(

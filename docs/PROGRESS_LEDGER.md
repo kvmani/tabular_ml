@@ -13,11 +13,12 @@ inference, rich built-in datasets, comprehensive tests, and GitHub publication.
 
 ## Current status
 
-- Phase: 2 — data ingestion and semantic profiling.
+- Phase: 4 — model catalog, training, evaluation, and inference.
 - State: in progress.
-- Resume point: implement safe CSV/Excel parsing, workflow dataset sessions,
-  semantic feature typing, task/target recommendations, quality and leakage
-  warnings, preview payloads, and built-in/upload API routes with tests.
+- Resume point: implement the capability/parameter-aware estimator registry,
+  leakage-safe split and cross-validation training, classification/regression
+  metrics and diagnostics, comparison runs, feature importance, in-session
+  inference, and report/model artifact downloads with tests.
 - Target repository: `C:\Users\kvman\PycharmProjects\tabular_ml`.
 - Host repository: `C:\Users\kvman\PycharmProjects\ml_server`.
 - Branch: `main` in both repositories.
@@ -51,9 +52,9 @@ inference, rich built-in datasets, comprehensive tests, and GitHub publication.
 
 - [x] M1 — application/package foundation, registry contract, memory store,
   security headers, CI skeleton, and first tests.
-- [ ] M2 — data upload, Excel/CSV parsing, semantic schema inference, data
+- [x] M2 — data upload, Excel/CSV parsing, semantic schema inference, data
   quality report, missingness and leakage analysis.
-- [ ] M3 — preprocessing, feature roles, outlier detection/treatment, and
+- [x] M3 — preprocessing, feature roles, outlier detection/treatment, and
   reproducible train/test preparation.
 - [ ] M4 — broad algorithms, training/comparison, metrics, diagnostics,
   importance, inference, and model report downloads.
@@ -100,6 +101,11 @@ distinguish sensitive/ethical teaching considerations from model endorsement.
 | 2026-08-23 | `mypy src` with strict mode | Passed. |
 | 2026-08-23 | `python -m build` | Passed: sdist and wheel contain templates, static shell, and registry. |
 | 2026-08-23 | plugin-creator `validate_plugin.py codex/plugins/tabular-ml` | Passed. |
+| 2026-08-23 | Mixed CSV/XLSX ingestion, semantic schema, target recommendations, JSON-safe previews, bounded session flow. | Passed unit/integration fixtures including invalid type/size/shape cases. |
+| 2026-08-23 | Preprocessing plan/builder across simple/KNN imputation, one-hot/ordinal encoding, four scaling choices, date components, exclusions, and rare-level handling. | Passed; transformer remains unfitted until training/validation. |
+| 2026-08-23 | IQR, z-score, modified z-score, Isolation Forest, and LOF detection plus drop/mask/winsorize/reset. | Passed deterministic unit and API workflow tests. |
+| 2026-08-23 | `pytest --cov --cov-report=term-missing` after M2/M3 | Passed: 41 tests, 90.46% branch coverage. |
+| 2026-08-23 | `ruff check .` and strict `mypy src` after M2/M3 | Passed. |
 
 ## Commit policy
 
@@ -115,8 +121,7 @@ splitting only when a milestone becomes too large to review safely.
 
 ## Open risks
 
-- Python 3.13 compatibility across pandas/scikit-learn wheels must be verified
-  in the new environment.
+- Minimum Python is now 3.12; Python 3.13 compatibility is verified locally.
 - Plotly bundle size needs an explicit build budget and lazy loading.
 - Multiclass ROC/PR and explainability payloads can become large; bound points
   and feature counts.
