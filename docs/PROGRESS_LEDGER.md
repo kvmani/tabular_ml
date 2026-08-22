@@ -13,14 +13,14 @@ inference, rich built-in datasets, comprehensive tests, and GitHub publication.
 
 ## Current status
 
-- Phase: 9 — GitHub publication.
-- State: in progress.
-- Resume point: create and push `kvmani/tabular_ml`, publish tag `v0.1.0`, then
-  push the verified host integration.
+- Phase: complete.
+- State: achieved.
+- Resume point: no unfinished work; future changes should begin from the next
+  version entry in `CHANGELOG.md`.
 - Target repository: `C:\Users\kvman\PycharmProjects\tabular_ml`.
 - Host repository: `C:\Users\kvman\PycharmProjects\ml_server`.
 - Branch: `main` in both repositories.
-- Remote: not yet created for `tabular_ml`; `ml_server` uses
+- Remote: `https://github.com/kvmani/tabular_ml.git`; `ml_server` uses
   `https://github.com/kvmani/ml_server.git`.
 
 ## Decisions
@@ -66,7 +66,7 @@ inference, rich built-in datasets, comprehensive tests, and GitHub publication.
   smoke tests, and compatible CSP.
 - [x] M8 — complete QA: lint/type/test/build/coverage/E2E/package/security,
   visual inspection screenshots, docs, and release readiness.
-- [ ] M9 — GitHub repository creation, push, remote verification, and final
+- [x] M9 — GitHub repository creation, push, remote verification, and final
   host repository push.
 
 ## Dataset plan
@@ -124,6 +124,9 @@ distinguish sensitive/ethical teaching considerations from model endorsement.
 | 2026-08-23 | Built sdist/wheel in an isolated PEP 517 environment and installed the wheel into a clean smoke environment. | Passed packaged UI, CPU-only health contract, and discovery of all 6 datasets. |
 | 2026-08-23 | Final headed desktop/mobile Playwright pass on the release build. | Passed dataset load, visualization, complete per-chart gear dialog, responsive modal, and zero browser console errors. |
 | 2026-08-23 | Inspected the existing `kvmani/tabular_ml` remote and published its previous tip to `legacy-fastapi`. | Passed; all prior repository history is explicitly retained before updating `main`. |
+| 2026-08-23 | Joined the legacy ancestry, pushed the new workbench to `kvmani/tabular_ml` `main`, and published `v0.1.0`. | Passed; push was fast-forwardable and the legacy tip remains independently addressable. |
+| 2026-08-23 | Downloaded the public `v0.1.0` archive through the exact immutable URL used by `ml_server`. | Passed package metadata resolution. |
+| 2026-08-23 | Pushed `ml_server` integration commit `764ff7a` to its public `main`. | Passed; remote advanced from `384eee2` to `764ff7a`. |
 
 ## Commit policy
 
