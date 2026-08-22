@@ -56,4 +56,3 @@ class Settings:
 
 
 DEFAULT_SETTINGS = Settings.from_environment()
-

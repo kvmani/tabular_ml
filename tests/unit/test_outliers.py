@@ -74,4 +74,3 @@ def test_missing_numeric_values_are_supported() -> None:
         OutlierConfig.from_mapping({"method": "isolation_forest"}),
     )
     assert len(result.row_mask) == len(frame)
-

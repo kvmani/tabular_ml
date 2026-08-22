@@ -110,13 +110,17 @@ def _univariate_result(
         q1 = numeric.quantile(0.25)
         q3 = numeric.quantile(0.75)
         spread = (q3 - q1).replace(0, np.nan)
-        distance = pd.concat(
-            [
-                ((q1 - numeric) / spread).clip(lower=0),
-                ((numeric - q3) / spread).clip(lower=0),
-            ],
-            axis=0,
-        ).groupby(level=0).max()
+        distance = (
+            pd.concat(
+                [
+                    ((q1 - numeric) / spread).clip(lower=0),
+                    ((numeric - q3) / spread).clip(lower=0),
+                ],
+                axis=0,
+            )
+            .groupby(level=0)
+            .max()
+        )
         cell_mask = distance > config.threshold
         scores = distance.max(axis=1).fillna(0)
     elif config.method == "zscore":
@@ -183,9 +187,7 @@ def detect_outliers(
         row_mask=row_mask,
         cell_mask=cell_mask,
         scores=scores,
-        column_counts={
-            str(column): int(cell_mask[column].sum()) for column in cell_mask.columns
-        },
+        column_counts={str(column): int(cell_mask[column].sum()) for column in cell_mask.columns},
     )
 
 

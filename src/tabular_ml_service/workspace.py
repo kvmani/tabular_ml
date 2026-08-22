@@ -16,6 +16,7 @@ class DatasetWorkspace:
     working: pd.DataFrame
     metadata: dict[str, Any] = field(default_factory=dict)
     history: list[dict[str, Any]] = field(default_factory=list)
+    runs: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def create(
@@ -37,4 +38,4 @@ class DatasetWorkspace:
     def reset(self) -> None:
         self.working = self.original.copy(deep=True)
         self.history.clear()
-
+        self.runs.clear()

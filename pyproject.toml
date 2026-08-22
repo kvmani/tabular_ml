@@ -82,9 +82,12 @@ strict = true
 packages = ["tabular_ml_service"]
 
 [[tool.mypy.overrides]]
-module = ["sklearn.*"]
+module = ["joblib", "scipy.*", "sklearn.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["tabular_ml_service.core.preprocessing"]
+module = [
+  "tabular_ml_service.core.preprocessing",
+  "tabular_ml_service.core.training",
+]
 disallow_subclassing_any = false

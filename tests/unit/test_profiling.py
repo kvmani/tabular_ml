@@ -16,8 +16,7 @@ def _mixed_frame() -> pd.DataFrame:
             "joined_on": pd.date_range("2024-01-01", periods=rows, freq="D").astype(str),
             "department": ["lab", "plant", "office"] * 12,
             "notes": [
-                f"Long free-form observation number {index} with context"
-                for index in range(rows)
+                f"Long free-form observation number {index} with context" for index in range(rows)
             ],
             "constant": "same",
             "promoted": [0, 1] * 18,

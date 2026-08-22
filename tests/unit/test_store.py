@@ -41,4 +41,3 @@ def test_store_delete_and_clear() -> None:
     assert store.delete(first) is False
     store.clear()
     assert len(store) == 0
-

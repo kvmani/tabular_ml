@@ -13,12 +13,12 @@ inference, rich built-in datasets, comprehensive tests, and GitHub publication.
 
 ## Current status
 
-- Phase: 4 — model catalog, training, evaluation, and inference.
+- Phase: 5/6 — frontend, visualization, help, and demo datasets.
 - State: in progress.
-- Resume point: implement the capability/parameter-aware estimator registry,
-  leakage-safe split and cross-validation training, classification/regression
-  metrics and diagnostics, comparison runs, feature importance, in-session
-  inference, and report/model artifact downloads with tests.
+- Resume point: vendor and verify the public datasets/metadata registry; then
+  build the responsive React workspace and Plotly chart system around the
+  existing APIs, including per-chart gear controls, help, export, error,
+  progress, comparison, evaluation, and inference workflows.
 - Target repository: `C:\Users\kvman\PycharmProjects\tabular_ml`.
 - Host repository: `C:\Users\kvman\PycharmProjects\ml_server`.
 - Branch: `main` in both repositories.
@@ -56,7 +56,7 @@ inference, rich built-in datasets, comprehensive tests, and GitHub publication.
   quality report, missingness and leakage analysis.
 - [x] M3 — preprocessing, feature roles, outlier detection/treatment, and
   reproducible train/test preparation.
-- [ ] M4 — broad algorithms, training/comparison, metrics, diagnostics,
+- [x] M4 — broad algorithms, training/comparison, metrics, diagnostics,
   importance, inference, and model report downloads.
 - [ ] M5 — polished responsive guided frontend, configurable Plotly panels,
   accessibility, contextual help, and error/progress states.
@@ -106,6 +106,11 @@ distinguish sensitive/ethical teaching considerations from model endorsement.
 | 2026-08-23 | IQR, z-score, modified z-score, Isolation Forest, and LOF detection plus drop/mask/winsorize/reset. | Passed deterministic unit and API workflow tests. |
 | 2026-08-23 | `pytest --cov --cov-report=term-missing` after M2/M3 | Passed: 41 tests, 90.46% branch coverage. |
 | 2026-08-23 | `ruff check .` and strict `mypy src` after M2/M3 | Passed. |
+| 2026-08-23 | Algorithm registry across 14 linear, neighbour, tree, bagging, boosting, kernel, SGD, MLP, probabilistic, and sparse-linear choices. | Passed registry construction and parameter/task validation tests. |
+| 2026-08-23 | Leakage-safe holdout and cross-validation, classification/regression metrics, ROC/PR/confusion/residual diagnostics, native/permutation importance. | Passed synthetic signal fixtures for both task types. |
+| 2026-08-23 | Model comparison, in-session inference, report retrieval, and generated joblib artifact APIs. | Passed full HTTP workflow tests; no user-supplied pickle loading. |
+| 2026-08-23 | `pytest --cov --cov-report=term-missing` after M4 | Passed: 54 tests, 87.76% branch coverage. |
+| 2026-08-23 | `ruff check .` and strict `mypy src` after M4 | Passed. |
 
 ## Commit policy
 

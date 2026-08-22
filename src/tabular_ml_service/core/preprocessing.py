@@ -212,11 +212,7 @@ def feature_plan(
     estimated_features = (
         len(groups["numeric"])
         + len(groups["datetime"]) * 5
-        + (
-            categorical_levels
-            if config.encoding == "onehot"
-            else len(groups["categorical"])
-        )
+        + (categorical_levels if config.encoding == "onehot" else len(groups["categorical"]))
     )
     if estimated_features > 1_000:
         warnings.append(

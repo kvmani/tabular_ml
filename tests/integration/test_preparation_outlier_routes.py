@@ -60,4 +60,3 @@ def test_preparation_route_validates_json_and_target(client) -> None:
     )
     assert no_json.get_json()["error"]["code"] == "request.invalid_json"
     assert no_target.get_json()["error"]["code"] == "target.missing"
-

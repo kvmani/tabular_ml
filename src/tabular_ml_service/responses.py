@@ -21,4 +21,3 @@ def failure(error: ApiError) -> tuple[Response, int]:
     if error.details:
         payload["error"]["details"] = error.details
     return jsonify(payload), error.status
-

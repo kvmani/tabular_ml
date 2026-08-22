@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import secrets
+from io import BytesIO
 from typing import Any
 
+import joblib
 from flask import current_app
 from werkzeug.utils import secure_filename
 
@@ -13,6 +16,7 @@ from .core.data import parse_dataset, preview_records
 from .core.outliers import OutlierConfig, OutlierResult, apply_outliers, detect_outliers
 from .core.preprocessing import PreparationConfig, feature_plan
 from .core.profiling import profile_dataset
+from .core.training import FittedRun, TrainingOptions, predict_records, train_model
 from .dataset_registry import DatasetRegistry
 from .errors import ApiError
 from .store import BoundedTTLStore
@@ -162,3 +166,139 @@ def reset_workspace(session_id: str) -> dict[str, Any]:
     workspace = _store().get(session_id)
     workspace.reset()
     return _workspace_payload(session_id, workspace)
+
+
+def _mapping(payload: Any, name: str) -> dict[str, Any]:
+    if payload is None:
+        return {}
+    if not isinstance(payload, dict):
+        raise ApiError(code="training.invalid_request", message=f"{name} must be an object.")
+    return payload
+
+
+def train_workspace(session_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    workspace = _store().get(session_id)
+    target = payload.get("target")
+    algorithm = payload.get("algorithm")
+    if not isinstance(target, str) or not target:
+        raise ApiError(code="target.missing", message="Choose a target column.")
+    if not isinstance(algorithm, str) or not algorithm:
+        raise ApiError(code="algorithm.missing", message="Choose an algorithm.")
+    preparation = PreparationConfig.from_mapping(
+        _mapping(payload.get("preparation"), "Preparation config")
+    )
+    options_payload = _mapping(payload.get("options"), "Training options")
+    options_payload.setdefault("random_seed", _settings().random_seed)
+    options = TrainingOptions.from_mapping(options_payload)
+    run = train_model(
+        workspace.working,
+        target=target,
+        algorithm_id=algorithm,
+        parameters=_mapping(payload.get("parameters"), "Algorithm parameters"),
+        preparation=preparation,
+        options=options,
+    )
+    run_id = secrets.token_urlsafe(18)
+    workspace.runs[run_id] = run
+    return {"run_id": run_id, **run.result}
+
+
+def _get_run(workspace: DatasetWorkspace, run_id: str) -> FittedRun:
+    run = workspace.runs.get(run_id)
+    if not isinstance(run, FittedRun):
+        raise ApiError(
+            code="run.not_found",
+            message="This model run does not exist in the current workspace.",
+            status=404,
+        )
+    return run
+
+
+def get_run_report(session_id: str, run_id: str) -> dict[str, Any]:
+    workspace = _store().get(session_id)
+    run = _get_run(workspace, run_id)
+    return {"run_id": run_id, **run.result}
+
+
+def infer_workspace(
+    session_id: str,
+    run_id: str,
+    records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    workspace = _store().get(session_id)
+    run = _get_run(workspace, run_id)
+    return {"run_id": run_id, **predict_records(run, records)}
+
+
+def compare_workspace(session_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    algorithms = payload.get("algorithms")
+    if (
+        not isinstance(algorithms, list)
+        or not all(isinstance(item, str) for item in algorithms)
+        or not 2 <= len(algorithms) <= 6
+    ):
+        raise ApiError(
+            code="comparison.invalid_algorithms",
+            message="Choose between two and six algorithms to compare.",
+        )
+    parameters = _mapping(payload.get("parameters"), "Comparison parameters")
+    results: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
+    for algorithm in algorithms:
+        request_payload = {
+            **payload,
+            "algorithm": algorithm,
+            "parameters": _mapping(parameters.get(algorithm), f"{algorithm} parameters"),
+        }
+        try:
+            trained = train_workspace(session_id, request_payload)
+        except ApiError as exc:
+            failures.append(
+                {
+                    "algorithm": algorithm,
+                    "error": {"code": exc.code, "message": exc.message},
+                }
+            )
+            continue
+        primary = trained["primary_metric"]
+        results.append(
+            {
+                "run_id": trained["run_id"],
+                "algorithm": trained["algorithm"],
+                "primary_metric": primary,
+                "test_score": trained["metrics"][primary],
+                "cv_score": trained["cross_validation"]["metrics"][primary]["mean"],
+                "metrics": trained["metrics"],
+            }
+        )
+    results.sort(key=lambda item: float(item["test_score"]), reverse=True)
+    if not results:
+        raise ApiError(
+            code="comparison.all_failed",
+            message="None of the selected algorithms could be trained.",
+            details={"failures": failures},
+        )
+    return {"leaderboard": results, "failures": failures}
+
+
+def model_artifact(session_id: str, run_id: str) -> tuple[BytesIO, str]:
+    workspace = _store().get(session_id)
+    run = _get_run(workspace, run_id)
+    artifact = {
+        "format": "tabular-ml-joblib-v1",
+        "notice": (
+            "Generated by Tabular ML Workbench. Load only artifacts you created "
+            "and trust; Python joblib files are executable deserialization formats."
+        ),
+        "target": run.target,
+        "task": run.task,
+        "algorithm": run.algorithm.id,
+        "parameters": run.parameters,
+        "feature_columns": run.feature_columns,
+        "pipeline": run.pipeline,
+        "report": run.result,
+    }
+    buffer = BytesIO()
+    joblib.dump(artifact, buffer, compress=3)
+    buffer.seek(0)
+    return buffer, f"tabular-ml-{run.algorithm.id}-{run_id[:8]}.joblib"
