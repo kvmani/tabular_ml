@@ -35,6 +35,7 @@ inference, rich built-in datasets, comprehensive tests, and GitHub publication.
 | 2026-08-23 | Bundle Plotly locally and expose settings per chart. | Interactive, configurable, publication-quality exports without CDNs. |
 | 2026-08-23 | Keep Codex plugin scaffold under `codex/plugins/tabular-ml`. | Preserves exact requested repo path while satisfying normalized plugin naming. |
 | 2026-08-23 | Enforce CPU-only algorithms and dependencies. | The user explicitly requires no GPU runtime or dependency; scikit-learn supplies the complete estimator catalog. |
+| 2026-08-23 | Preserve the pre-existing GitHub implementation as `legacy-fastapi` and join its ancestry without retaining its tree. | The requested repository name already existed; this keeps all 35 prior commits recoverable while making the new workbench the coherent default tree. |
 
 ## Upstream audit
 
@@ -122,6 +123,7 @@ distinguish sensitive/ethical teaching considerations from model endorsement.
 | 2026-08-23 | Final frontend type/build and component suite after configurable chart expansion. | Passed production build and 4 tests; SVG/PNG export and all gear settings compile. |
 | 2026-08-23 | Built sdist/wheel in an isolated PEP 517 environment and installed the wheel into a clean smoke environment. | Passed packaged UI, CPU-only health contract, and discovery of all 6 datasets. |
 | 2026-08-23 | Final headed desktop/mobile Playwright pass on the release build. | Passed dataset load, visualization, complete per-chart gear dialog, responsive modal, and zero browser console errors. |
+| 2026-08-23 | Inspected the existing `kvmani/tabular_ml` remote and published its previous tip to `legacy-fastapi`. | Passed; all prior repository history is explicitly retained before updating `main`. |
 
 ## Commit policy
 
