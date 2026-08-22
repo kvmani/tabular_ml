@@ -13,12 +13,11 @@ inference, rich built-in datasets, comprehensive tests, and GitHub publication.
 
 ## Current status
 
-- Phase: 5/6 — frontend, visualization, help, and demo datasets.
+- Phase: 7 — `ml_server` integration.
 - State: in progress.
-- Resume point: vendor and verify the public datasets/metadata registry; then
-  build the responsive React workspace and Plotly chart system around the
-  existing APIs, including per-chart gear controls, help, export, error,
-  progress, comparison, evaluation, and inference workflows.
+- Resume point: commit the completed frontend/dataset milestone, then install
+  and mount the companion blueprint in `ml_server`, add catalog/navigation,
+  smoke tests, setup scripts, and host documentation.
 - Target repository: `C:\Users\kvman\PycharmProjects\tabular_ml`.
 - Host repository: `C:\Users\kvman\PycharmProjects\ml_server`.
 - Branch: `main` in both repositories.
@@ -58,9 +57,9 @@ inference, rich built-in datasets, comprehensive tests, and GitHub publication.
   reproducible train/test preparation.
 - [x] M4 — broad algorithms, training/comparison, metrics, diagnostics,
   importance, inference, and model report downloads.
-- [ ] M5 — polished responsive guided frontend, configurable Plotly panels,
+- [x] M5 — polished responsive guided frontend, configurable Plotly panels,
   accessibility, contextual help, and error/progress states.
-- [ ] M6 — at least five tracked demo CSV datasets with adjacent metadata,
+- [x] M6 — at least five tracked demo CSV datasets with adjacent metadata,
   checksums, provenance, license, learning goals, and registry tests.
 - [ ] M7 — `ml_server` install, blueprint/catalog integration, setup/docs,
   smoke tests, and compatible CSP.
@@ -111,6 +110,11 @@ distinguish sensitive/ethical teaching considerations from model endorsement.
 | 2026-08-23 | Model comparison, in-session inference, report retrieval, and generated joblib artifact APIs. | Passed full HTTP workflow tests; no user-supplied pickle loading. |
 | 2026-08-23 | `pytest --cov --cov-report=term-missing` after M4 | Passed: 54 tests, 87.76% branch coverage. |
 | 2026-08-23 | `ruff check .` and strict `mypy src` after M4 | Passed. |
+| 2026-08-23 | Vendored Titanic, Adult Income, Palmer Penguins, Wine Quality, Auto MPG, and Breast Cancer Diagnostic with adjacent metadata, checksums, provenance, licensing, teaching goals, and cautions. | Passed offline registry verification for all 6 datasets. |
+| 2026-08-23 | Visualization computation routes for distribution/KDE, correlation, scatter/trend, grouped box, and missingness. | Passed unit and HTTP integration tests with bounded points/columns. |
+| 2026-08-23 | `npm run build` and `npm test` for the React/TypeScript workspace. | Passed production type/build and 4 component/layout tests; Plotly is a lazy same-origin chunk. |
+| 2026-08-23 | `pytest --cov`, `ruff check .`, strict `mypy src`, and `vendor_datasets.py --check` after M5/M6. | Passed: 61 tests, 88.16% branch coverage, 6 tracked datasets verified. |
+| 2026-08-23 | Headed Playwright visual QA at desktop and mobile widths. | Passed landing, workspace, chart/settings, train/evaluate, and predict flows; corrected scroll restoration, desktop nav cascade, intrinsic overflow, CSP, and audit sizing findings. |
 
 ## Commit policy
 
@@ -127,10 +131,12 @@ splitting only when a milestone becomes too large to review safely.
 ## Open risks
 
 - Minimum Python is now 3.12; Python 3.13 compatibility is verified locally.
-- Plotly bundle size needs an explicit build budget and lazy loading.
+- Plotly is a 4.6 MB minified lazy chunk (1.38 MB gzip); acceptable for the
+  offline scientific surface, but recorded as an explicit build budget.
 - Multiclass ROC/PR and explainability payloads can become large; bound points
   and feature counts.
-- Host CSP currently needs no CDN, but may require worker/blob directives for
-  Plotly export behavior.
+- Plotly requires inline style attributes for its SVG/canvas layout. The
+  companion keeps scripts same-origin while allowing inline styles; host
+  integration must preserve that explicit exception.
 - GitHub CLI is not currently visible on PATH; repository creation may require
   authenticated GitHub API access or browser/credential-manager workflow.

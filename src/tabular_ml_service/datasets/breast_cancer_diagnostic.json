@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "key": "breast_cancer_diagnostic",
+  "name": "Breast Cancer Wisconsin Diagnostic",
+  "description": "Thirty continuous cell-nucleus measurements with benign or malignant labels.",
+  "task": "classification",
+  "target": "diagnosis",
+  "file": "breast_cancer_diagnostic.csv",
+  "rows": 569,
+  "columns": 32,
+  "column_names": [
+    "patient_id",
+    "diagnosis",
+    "radius_mean",
+    "texture_mean",
+    "perimeter_mean",
+    "area_mean",
+    "smoothness_mean",
+    "compactness_mean",
+    "concavity_mean",
+    "concave_points_mean",
+    "symmetry_mean",
+    "fractal_dimension_mean",
+    "radius_se",
+    "texture_se",
+    "perimeter_se",
+    "area_se",
+    "smoothness_se",
+    "compactness_se",
+    "concavity_se",
+    "concave_points_se",
+    "symmetry_se",
+    "fractal_dimension_se",
+    "radius_worst",
+    "texture_worst",
+    "perimeter_worst",
+    "area_worst",
+    "smoothness_worst",
+    "compactness_worst",
+    "concavity_worst",
+    "concave_points_worst",
+    "symmetry_worst",
+    "fractal_dimension_worst"
+  ],
+  "missing_cells": 0,
+  "source": {
+    "page": "https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic",
+    "download": "https://archive.ics.uci.edu/static/public/17/breast%2Bcancer%2Bwisconsin%2Bdiagnostic.zip",
+    "retrieved": "2026-08-23"
+  },
+  "license": {
+    "name": "CC BY 4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/",
+    "attribution": "Wolberg, W. et al. (1993). Breast Cancer Wisconsin (Diagnostic) [Dataset]. UCI ML Repository. https://doi.org/10.24432/C5DW2B."
+  },
+  "learning_goals": [
+    "Compare accuracy with recall, ROC AUC, and calibration-sensitive metrics.",
+    "Inspect correlated features and importance stability.",
+    "Discuss the limits of retrospective diagnostic demonstrations."
+  ],
+  "recommended_exclusions": [
+    "patient_id"
+  ],
+  "ethical_notes": "Teaching data only. A model trained here is not a medical device and must never be used for diagnosis, triage, or treatment.",
+  "tags": [
+    "classification",
+    "health",
+    "continuous-features",
+    "feature-importance"
+  ],
+  "sha256": "4ee24f9d228c8c754c5f8b8adb7d68e92424db7d1600187c65e9d3f5356eecc2"
+}

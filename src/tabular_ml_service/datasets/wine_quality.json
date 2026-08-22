@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "key": "wine_quality",
+  "name": "Vinho Verde Wine Quality",
+  "description": "Physicochemical measurements and ordinal sensory quality scores for red and white wines.",
+  "task": "regression",
+  "target": "quality",
+  "file": "wine_quality.csv",
+  "rows": 6497,
+  "columns": 13,
+  "column_names": [
+    "wine_type",
+    "fixed acidity",
+    "volatile acidity",
+    "citric acid",
+    "residual sugar",
+    "chlorides",
+    "free sulfur dioxide",
+    "total sulfur dioxide",
+    "density",
+    "pH",
+    "sulphates",
+    "alcohol",
+    "quality"
+  ],
+  "missing_cells": 0,
+  "source": {
+    "page": "https://archive.ics.uci.edu/dataset/186/wine+quality",
+    "download": "https://archive.ics.uci.edu/static/public/186/wine%2Bquality.zip",
+    "retrieved": "2026-08-23"
+  },
+  "license": {
+    "name": "CC BY 4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/",
+    "attribution": "Cortez, P. et al. (2009). Wine Quality [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C56S3T."
+  },
+  "learning_goals": [
+    "Compare RMSE, MAE, R², and residual diagnostics.",
+    "Inspect nonlinear effects and correlated chemistry measurements.",
+    "Discuss regression versus ordinal classification framing."
+  ],
+  "recommended_exclusions": [],
+  "ethical_notes": "Sensory quality is subjective and imbalanced; predictions are not a substitute for qualified tasting, quality assurance, or safety testing.",
+  "tags": [
+    "regression",
+    "ordinal-target",
+    "nonlinear",
+    "feature-importance"
+  ],
+  "sha256": "89d786260f08cb04f0795fa75e467756638ddceb79d5ebeb0915f9f60c5e9cf2"
+}

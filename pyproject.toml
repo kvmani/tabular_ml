@@ -52,6 +52,7 @@ tabular_ml_service = [
   "datasets/*.csv",
   "datasets/*.json",
   "static/*",
+  "static/ui/*",
   "templates/*.html",
 ]
 

@@ -33,10 +33,10 @@ def test_config_documents_privacy_and_limits(client) -> None:
 
 def test_dataset_list_has_stable_shape(client) -> None:
     response = client.get("/tabular_ml/api/v1/datasets")
-    assert response.get_json() == {
-        "success": True,
-        "data": {"datasets": []},
-    }
+    payload = response.get_json()
+    assert payload["success"] is True
+    assert len(payload["data"]["datasets"]) == 6
+    assert payload["data"]["datasets"][0]["key"] == "titanic"
 
 
 def test_blueprint_initializes_extensions_when_mounted_by_host() -> None:

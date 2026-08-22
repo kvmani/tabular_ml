@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "key": "auto_mpg",
+  "name": "Auto MPG",
+  "description": "Vehicle attributes, missing horsepower, origin, and city-cycle fuel economy.",
+  "task": "regression",
+  "target": "mpg",
+  "file": "auto_mpg.csv",
+  "rows": 398,
+  "columns": 9,
+  "column_names": [
+    "mpg",
+    "cylinders",
+    "displacement",
+    "horsepower",
+    "weight",
+    "acceleration",
+    "model_year",
+    "origin",
+    "car_name"
+  ],
+  "missing_cells": 6,
+  "source": {
+    "page": "https://archive.ics.uci.edu/dataset/9/auto+mpg",
+    "download": "https://archive.ics.uci.edu/static/public/9/auto%2Bmpg.zip",
+    "retrieved": "2026-08-23"
+  },
+  "license": {
+    "name": "CC BY 4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/",
+    "attribution": "Quinlan, R. (1993). Auto MPG [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5859H."
+  },
+  "learning_goals": [
+    "Compare imputation for missing horsepower.",
+    "Inspect residuals across model years and origins.",
+    "Contrast linear, neighbour, and boosted-tree regressors."
+  ],
+  "recommended_exclusions": [
+    "car_name"
+  ],
+  "ethical_notes": "Historical city-cycle estimates are not comparable to current regulatory tests and should not guide modern purchase or emissions claims.",
+  "tags": [
+    "regression",
+    "missing-values",
+    "mixed-types",
+    "outliers"
+  ],
+  "sha256": "998731a41b824206169dcf84b3a91048bc8d5b833f04b6935686e91664480021"
+}

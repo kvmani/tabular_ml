@@ -7,9 +7,13 @@ import pytest
 from tabular_ml_service.dataset_registry import DatasetRegistry
 
 
-def test_empty_packaged_registry_is_valid() -> None:
+def test_packaged_registry_discovers_six_datasets() -> None:
     registry = DatasetRegistry()
-    assert registry.summaries() == []
+    summaries = registry.summaries()
+    assert len(summaries) == 6
+    assert {"classification", "regression"} == {item["task"] for item in summaries}
+    assert registry.get("titanic").target == "survived"
+    assert registry.metadata("palmer_penguins")["license"]["name"] == "CC0 1.0"
     assert registry.validate_files() == []
 
 

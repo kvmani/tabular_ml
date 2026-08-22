@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "key": "palmer_penguins",
+  "name": "Palmer Penguins",
+  "description": "Three penguin species with body measurements, islands, sex, years, and missing values.",
+  "task": "classification",
+  "target": "species",
+  "file": "palmer_penguins.csv",
+  "rows": 344,
+  "columns": 8,
+  "column_names": [
+    "species",
+    "island",
+    "bill_length_mm",
+    "bill_depth_mm",
+    "flipper_length_mm",
+    "body_mass_g",
+    "sex",
+    "year"
+  ],
+  "missing_cells": 19,
+  "source": {
+    "page": "https://allisonhorst.github.io/palmerpenguins/",
+    "download": "https://raw.githubusercontent.com/allisonhorst/palmerpenguins/refs/heads/main/inst/extdata/penguins.csv",
+    "retrieved": "2026-08-23"
+  },
+  "license": {
+    "name": "CC0 1.0",
+    "url": "https://allisonhorst.github.io/palmerpenguins/LICENSE.html",
+    "attribution": "Horst AM, Hill AP, Gorman KB (2020). palmerpenguins: Palmer Archipelago (Antarctica) penguin data. doi:10.5281/zenodo.3960218."
+  },
+  "learning_goals": [
+    "Explore multiclass confusion matrices and weighted metrics.",
+    "Visualize morphology by species and island.",
+    "Compare simple linear boundaries with nonlinear ensembles."
+  ],
+  "recommended_exclusions": [],
+  "ethical_notes": "Ecological observations cover specific species, islands, and study years; do not extrapolate beyond that sampling context without domain review.",
+  "tags": [
+    "classification",
+    "multiclass",
+    "missing-values",
+    "visualization"
+  ],
+  "sha256": "f2d6493fc64ad958edbabd55eb0fc989af2c5a0458a2c79ccffe7985606feb60"
+}

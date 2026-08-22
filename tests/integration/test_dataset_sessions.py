@@ -44,3 +44,17 @@ def test_upload_errors_are_actionable(client) -> None:
     assert unsupported.get_json()["error"]["details"]["accepted_extensions"] == [".csv", ".xlsx"]
     assert unknown.status_code == 404
     assert unknown.get_json()["error"]["code"] == "dataset.not_found"
+
+
+def test_builtin_metadata_and_load_flow(client) -> None:
+    metadata = client.get("/tabular_ml/api/v1/datasets/palmer_penguins")
+    assert metadata.status_code == 200
+    assert metadata.get_json()["data"]["target"] == "species"
+    assert len(metadata.get_json()["data"]["learning_goals"]) >= 3
+
+    loaded = client.post("/tabular_ml/api/v1/datasets/palmer_penguins/load")
+    data = loaded.get_json()["data"]
+    assert loaded.status_code == 201
+    assert data["dataset"]["rows"] == 344
+    assert data["dataset"]["metadata"]["license"]["name"] == "CC0 1.0"
+    assert data["profile"]["target_candidates"][0]["column"] == "species"

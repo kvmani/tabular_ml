@@ -5,22 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#102a2e">
     <title>Tabular ML Workbench</title>
-    <link rel="stylesheet" href="{{ url_for('tabular_ml.static', filename='app.css') }}">
+    <link rel="icon" href="{{ url_for('tabular_ml.static', filename='favicon.svg') }}" type="image/svg+xml">
+    <link rel="stylesheet" href="{{ url_for('tabular_ml.static', filename='ui/main.css') }}">
   </head>
   <body>
-    <a class="skip-link" href="#app">Skip to workbench</a>
-    <main id="app" class="foundation-shell" aria-live="polite">
-      <section>
-        <p class="eyebrow">TABULAR ML WORKBENCH</p>
-        <h1>Build a model you can understand.</h1>
-        <p>
-          The guided data, preparation, model, evaluation, and prediction workspace
-          is being assembled. The service API is ready for the next milestone.
-        </p>
-        <div id="service-status" class="status-card">Checking local service…</div>
-      </section>
-    </main>
-    <script type="module" src="{{ url_for('tabular_ml.static', filename='app.js') }}"></script>
+    <div id="root"></div>
+    <noscript>Tabular ML requires JavaScript for its interactive workspace.</noscript>
+    <script type="module" src="{{ url_for('tabular_ml.static', filename='ui/app.js') }}"></script>
   </body>
 </html>
-

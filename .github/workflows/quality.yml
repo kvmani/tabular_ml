@@ -15,6 +15,6 @@ jobs:
           cache: pip
       - run: python -m pip install -e ".[test]"
       - run: ruff check .
+      - run: python scripts/vendor_datasets.py --check
       - run: pytest --cov --cov-report=term-missing
       - run: python -m build
-

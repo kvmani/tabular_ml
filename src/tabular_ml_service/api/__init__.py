@@ -24,6 +24,7 @@ from ..services import (
     preparation_plan,
     reset_workspace,
     train_workspace,
+    visualize_workspace,
 )
 from ..version import __version__
 
@@ -77,6 +78,19 @@ def algorithms() -> tuple[Response, int]:
 @api_bp.get("/datasets")
 def datasets() -> tuple[Response, int]:
     return success({"datasets": DatasetRegistry().summaries()})
+
+
+@api_bp.get("/datasets/<string:key>")
+def datasets_metadata(key: str) -> tuple[Response, int]:
+    try:
+        metadata = DatasetRegistry().metadata(key)
+    except KeyError as exc:
+        raise ApiError(
+            code="dataset.not_found",
+            message=f"No built-in dataset named '{key}' exists.",
+            status=404,
+        ) from exc
+    return success(metadata)
 
 
 @api_bp.post("/datasets/<string:key>/load")
@@ -156,6 +170,11 @@ def outliers_apply(session_id: str) -> tuple[Response, int]:
 @api_bp.post("/sessions/<string:session_id>/reset")
 def sessions_reset(session_id: str) -> tuple[Response, int]:
     return success(reset_workspace(session_id))
+
+
+@api_bp.post("/sessions/<string:session_id>/visualizations")
+def visualizations_create(session_id: str) -> tuple[Response, int]:
+    return success(visualize_workspace(session_id, _json_object()))
 
 
 @api_bp.post("/sessions/<string:session_id>/runs")

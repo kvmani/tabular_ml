@@ -1,5 +1,113 @@
 {
   "schema_version": 1,
-  "datasets": []
+  "datasets": [
+    {
+      "key": "titanic",
+      "name": "Titanic Passenger Survival",
+      "task": "classification",
+      "target": "survived",
+      "file": "titanic.csv",
+      "metadata_file": "titanic.json",
+      "rows": 1309,
+      "columns": 14,
+      "summary": "Mixed passenger attributes, substantial missingness, and a binary survival target.",
+      "license_name": "Vanderbilt Biostatistics data permission",
+      "tags": [
+        "classification",
+        "missing-values",
+        "mixed-types",
+        "leakage"
+      ]
+    },
+    {
+      "key": "adult_income",
+      "name": "U.S. Adult Census Income",
+      "task": "classification",
+      "target": "income",
+      "file": "adult_income.csv",
+      "metadata_file": "adult_income.json",
+      "rows": 48842,
+      "columns": 15,
+      "summary": "A larger mixed-type census extract for predicting whether income exceeds $50K.",
+      "license_name": "CC BY 4.0",
+      "tags": [
+        "classification",
+        "fairness",
+        "missing-values",
+        "high-cardinality"
+      ]
+    },
+    {
+      "key": "palmer_penguins",
+      "name": "Palmer Penguins",
+      "task": "classification",
+      "target": "species",
+      "file": "palmer_penguins.csv",
+      "metadata_file": "palmer_penguins.json",
+      "rows": 344,
+      "columns": 8,
+      "summary": "Three penguin species with body measurements, islands, sex, years, and missing values.",
+      "license_name": "CC0 1.0",
+      "tags": [
+        "classification",
+        "multiclass",
+        "missing-values",
+        "visualization"
+      ]
+    },
+    {
+      "key": "wine_quality",
+      "name": "Vinho Verde Wine Quality",
+      "task": "regression",
+      "target": "quality",
+      "file": "wine_quality.csv",
+      "metadata_file": "wine_quality.json",
+      "rows": 6497,
+      "columns": 13,
+      "summary": "Physicochemical measurements and ordinal sensory quality scores for red and white wines.",
+      "license_name": "CC BY 4.0",
+      "tags": [
+        "regression",
+        "ordinal-target",
+        "nonlinear",
+        "feature-importance"
+      ]
+    },
+    {
+      "key": "auto_mpg",
+      "name": "Auto MPG",
+      "task": "regression",
+      "target": "mpg",
+      "file": "auto_mpg.csv",
+      "metadata_file": "auto_mpg.json",
+      "rows": 398,
+      "columns": 9,
+      "summary": "Vehicle attributes, missing horsepower, origin, and city-cycle fuel economy.",
+      "license_name": "CC BY 4.0",
+      "tags": [
+        "regression",
+        "missing-values",
+        "mixed-types",
+        "outliers"
+      ]
+    },
+    {
+      "key": "breast_cancer_diagnostic",
+      "name": "Breast Cancer Wisconsin Diagnostic",
+      "task": "classification",
+      "target": "diagnosis",
+      "file": "breast_cancer_diagnostic.csv",
+      "metadata_file": "breast_cancer_diagnostic.json",
+      "rows": 569,
+      "columns": 32,
+      "summary": "Thirty continuous cell-nucleus measurements with benign or malignant labels.",
+      "license_name": "CC BY 4.0",
+      "tags": [
+        "classification",
+        "health",
+        "continuous-features",
+        "feature-importance"
+      ]
+    }
+  ]
 }
-

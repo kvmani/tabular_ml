@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "key": "titanic",
+  "name": "Titanic Passenger Survival",
+  "description": "Mixed passenger attributes, substantial missingness, and a binary survival target.",
+  "task": "classification",
+  "target": "survived",
+  "file": "titanic.csv",
+  "rows": 1309,
+  "columns": 14,
+  "column_names": [
+    "pclass",
+    "survived",
+    "name",
+    "sex",
+    "age",
+    "sibsp",
+    "parch",
+    "ticket",
+    "fare",
+    "cabin",
+    "embarked",
+    "boat",
+    "body",
+    "home.dest"
+  ],
+  "missing_cells": 3855,
+  "source": {
+    "page": "https://hbiostat.org/data/",
+    "download": "https://hbiostat.org/data/repo/titanic3.csv",
+    "retrieved": "2026-08-23"
+  },
+  "license": {
+    "name": "Vanderbilt Biostatistics data permission",
+    "url": "https://hbiostat.org/data/",
+    "attribution": "Data obtained from http://hbiostat.org/data courtesy of the Vanderbilt University Department of Biostatistics."
+  },
+  "learning_goals": [
+    "Compare imputation strategies for age, fare, cabin, and embarkation.",
+    "Inspect class balance and precision/recall trade-offs.",
+    "Recognize post-outcome leakage in boat and body fields."
+  ],
+  "recommended_exclusions": [
+    "name",
+    "ticket",
+    "cabin",
+    "boat",
+    "body",
+    "home.dest"
+  ],
+  "ethical_notes": "Historical passenger records include sex, age, and travel class. Use for teaching, not to generalize moral worth or modern safety policy.",
+  "tags": [
+    "classification",
+    "missing-values",
+    "mixed-types",
+    "leakage"
+  ],
+  "sha256": "6129b2f52b9c58ebbe657471c90ded6d2589500561b371964f6fa52a5035d232"
+}

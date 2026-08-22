@@ -91,6 +91,13 @@ class DatasetRegistry:
         except KeyError as exc:
             raise KeyError(f"Unknown built-in dataset: {key}") from exc
 
+    def metadata(self, key: str) -> dict[str, Any]:
+        record = self.get(key)
+        payload = json.loads((self.root / record.metadata_file).read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError(f"Dataset metadata must be an object: {key}")
+        return payload
+
     def validate_files(self) -> list[str]:
         issues: list[str] = []
         for record in self._records.values():

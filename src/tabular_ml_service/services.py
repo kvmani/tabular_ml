@@ -17,6 +17,7 @@ from .core.outliers import OutlierConfig, OutlierResult, apply_outliers, detect_
 from .core.preprocessing import PreparationConfig, feature_plan
 from .core.profiling import profile_dataset
 from .core.training import FittedRun, TrainingOptions, predict_records, train_model
+from .core.visualization import visualization_payload
 from .dataset_registry import DatasetRegistry
 from .errors import ApiError
 from .store import BoundedTTLStore
@@ -38,6 +39,25 @@ def _store() -> BoundedTTLStore[DatasetWorkspace]:
 def _workspace_payload(session_id: str, workspace: DatasetWorkspace) -> dict[str, Any]:
     settings = _settings()
     profile = profile_dataset(workspace.working)
+    documented_target = workspace.metadata.get("target")
+    documented_task = workspace.metadata.get("task")
+    if (
+        isinstance(documented_target, str)
+        and documented_target in workspace.working.columns
+        and documented_task in {"classification", "regression"}
+    ):
+        candidates = [
+            item for item in profile["target_candidates"] if item["column"] != documented_target
+        ]
+        profile["target_candidates"] = [
+            {
+                "column": documented_target,
+                "task": documented_task,
+                "confidence": 100,
+                "reason": "Documented target in the built-in dataset metadata",
+            },
+            *candidates,
+        ]
     return {
         "session_id": session_id,
         "dataset": {
@@ -302,3 +322,8 @@ def model_artifact(session_id: str, run_id: str) -> tuple[BytesIO, str]:
     joblib.dump(artifact, buffer, compress=3)
     buffer.seek(0)
     return buffer, f"tabular-ml-{run.algorithm.id}-{run_id[:8]}.joblib"
+
+
+def visualize_workspace(session_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    workspace = _store().get(session_id)
+    return visualization_payload(workspace.working, payload)

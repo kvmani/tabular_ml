@@ -58,7 +58,9 @@ def security_headers(response: Response) -> Response:
     response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
     response.headers.setdefault(
         "Content-Security-Policy",
-        "default-src 'self'; script-src 'self'; style-src 'self'; "
+        # Plotly positions SVG/canvas nodes with runtime style attributes. Scripts remain
+        # restricted to same-origin assets; only inline styles are permitted here.
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; "
         "worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'",
     )

@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "key": "adult_income",
+  "name": "U.S. Adult Census Income",
+  "description": "A larger mixed-type census extract for predicting whether income exceeds $50K.",
+  "task": "classification",
+  "target": "income",
+  "file": "adult_income.csv",
+  "rows": 48842,
+  "columns": 15,
+  "column_names": [
+    "age",
+    "workclass",
+    "fnlwgt",
+    "education",
+    "education_num",
+    "marital_status",
+    "occupation",
+    "relationship",
+    "race",
+    "sex",
+    "capital_gain",
+    "capital_loss",
+    "hours_per_week",
+    "native_country",
+    "income"
+  ],
+  "missing_cells": 6465,
+  "source": {
+    "page": "https://archive.ics.uci.edu/dataset/2/adult",
+    "download": "https://archive.ics.uci.edu/static/public/2/adult.zip",
+    "retrieved": "2026-08-23"
+  },
+  "license": {
+    "name": "CC BY 4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/",
+    "attribution": "Becker, B. & Kohavi, R. (1996). Adult [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5XW20."
+  },
+  "learning_goals": [
+    "Handle missing categorical values and higher-cardinality one-hot encoding.",
+    "Compare balanced metrics on an uneven target.",
+    "Audit subgroup performance and proxy variables before interpreting results."
+  ],
+  "recommended_exclusions": [
+    "fnlwgt"
+  ],
+  "ethical_notes": "Contains sensitive demographic attributes including age, race, and sex. Accuracy is not evidence of fairness; never use this teaching model for decisions.",
+  "tags": [
+    "classification",
+    "fairness",
+    "missing-values",
+    "high-cardinality"
+  ],
+  "sha256": "9479f8b76861e48c66836d97937f2c5a469581672e12c795d770b297817ae3a1"
+}
