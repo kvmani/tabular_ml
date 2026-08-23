@@ -48,6 +48,10 @@ Open `http://127.0.0.1:5070/tabular_ml/`. The six demo datasets are available
 from the first screen, and uploaded `.csv`/`.xlsx` files remain in the bounded
 in-memory session store.
 
+The scientific guide at `http://127.0.0.1:5070/tabular_ml/help` documents the
+analysis workflow, cross-validation and metric equations, critical inputs,
+leakage controls, and interpretation limits.
+
 ## Development
 
 ~~~powershell
@@ -72,6 +76,22 @@ app.register_blueprint(create_tabular_ml_blueprint())
 
 The sibling `ml_server` repository includes the catalog card, dependency,
 content-security policy, setup flow, and integration smoke tests.
+
+## Production deployment
+
+Build and install the release artifact, then run the bundled Waitress entry
+point behind the platform reverse proxy:
+
+~~~powershell
+python -m build
+python -m pip install --no-deps dist\tabular_ml_service-0.2.0-py3-none-any.whl
+tabular-ml --host 127.0.0.1 --port 5070
+~~~
+
+Use `GET /tabular_ml/api/v1/health` as the readiness probe and preserve the
+`/tabular_ml` prefix in the proxy. Roll back by reinstalling the previous wheel
+and restarting the service; runtime state is bounded and in-memory, so there is
+no database migration or persistent user data to reverse.
 
 ## Guides
 

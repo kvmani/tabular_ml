@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tabular-ml-service"
-version = "0.1.0"
+version = "0.2.0"
 description = "Privacy-first visual workbench for tabular machine learning"
 readme = "README.md"
 license = "MIT"
@@ -51,8 +51,7 @@ where = ["src"]
 tabular_ml_service = [
   "datasets/*.csv",
   "datasets/*.json",
-  "static/*",
-  "static/ui/*",
+  "static/**/*",
   "templates/*.html",
 ]
 

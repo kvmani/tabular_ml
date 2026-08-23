@@ -167,6 +167,7 @@ export function App() {
           <small>{workspace.dataset.rows.toLocaleString()} rows · {workspace.dataset.columns} columns</small>
         </div>
         <div className="header-actions">
+          <a className="help-link" href="/tabular_ml/help">Scientific help</a>
           <span className="privacy-pill"><LockKeyhole size={14} /> In-memory only</span>
           <button
             type="button"

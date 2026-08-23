@@ -37,9 +37,12 @@ export function DatasetLauncher({
             <small>Local workbench</small>
           </span>
         </a>
-        <div className="privacy-pill">
-          <LockKeyhole size={15} aria-hidden="true" />
-          Your data stays in this process
+        <div className="landing-header-actions">
+          <a className="help-link" href="/tabular_ml/help">Scientific help</a>
+          <div className="privacy-pill">
+            <LockKeyhole size={15} aria-hidden="true" />
+            Your data stays in this process
+          </div>
         </div>
       </header>
 
@@ -155,4 +158,3 @@ export function DatasetLauncher({
     </div>
   );
 }
-

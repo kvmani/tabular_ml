@@ -13,6 +13,15 @@ def test_index_is_served_at_companion_prefix(client) -> None:
     assert "default-src 'self'" in response.headers["Content-Security-Policy"]
 
 
+def test_scientific_help_documents_workflow_and_inputs(client) -> None:
+    response = client.get("/tabular_ml/help")
+    assert response.status_code == 200
+    assert b"From table to evidence" in response.data
+    assert b"Critical inputs" in response.data
+    assert b"tabular-ml-workflow.svg" in response.data
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+
+
 def test_health_uses_response_envelope(client) -> None:
     response = client.get("/tabular_ml/api/v1/health")
     payload = response.get_json()

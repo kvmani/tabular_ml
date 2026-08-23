@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 — 2026-08-23
+
+- Added standalone scientific help with the leakage-safe algorithm, main
+  equations, critical inputs, interpretation guidance, limitations, and an SVG
+  workflow diagram.
+- Added always-available help links from the dataset launcher and active
+  workspace while preserving the 0.1 API and artifact contracts.
+
 ## 0.1.0 — 2026-08-23
 
 - Added a guided CSV/XLSX profiling, preparation, outlier, visualization,

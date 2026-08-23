@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tabular ML · Scientific Help</title>
+<style>
+body{margin:0;background:#f4f6f1;color:#102a2e;font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1120px;margin:auto;padding:45px 24px}
+a{color:#0f766e;font-weight:800}
+.eyebrow{color:#b4473d;font-size:12px;font-weight:800;letter-spacing:.15em}
+h1{font-size:clamp(38px,6vw,64px);line-height:1;letter-spacing:-.04em;margin:12px 0 24px}
+h2{font-size:1.15rem;margin:0 0 14px}
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center}
+.hero img{width:100%;border-radius:18px}
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:0;list-style:none;margin-top:28px}
+.steps li{padding:15px;background:#fff;border-top:3px solid #0f766e;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:28px}
+.card{background:#fff;border:1px solid #d3ddd8;border-radius:16px;padding:22px}
+dt{font-weight:800}
+dd{margin:3px 0 15px;color:#62716e}
+/* Equations are typeset by the vendored MathJax bundle in static/vendor/mathjax.
+   The raw TeX is hidden only while .mathjax-pending is set by the config script,
+   so a missing bundle degrades to readable source rather than an empty box. */
+.eq{margin:16px 0 8px;padding:14px 12px;border-radius:10px;background:#e8f3ef;border:1px solid #d6e8e1;
+    color:#0f766e;text-align:center;overflow-x:auto;overflow-y:hidden;
+    font:1.05rem/1.5 'Latin Modern Math','Cambria Math',Georgia,serif}
+.eq mjx-container{margin:0!important;max-width:100%}
+.mathjax-pending .eq,.mathjax-pending .m{visibility:hidden}
+.note{color:#62716e;margin:0 0 18px}
+.where{margin:14px 0 0;padding-top:12px;border-top:1px dashed #d3ddd8}
+.where dt{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#7d8f8a}
+.where dd{display:flex;gap:12px;align-items:baseline;margin:8px 0 0;color:#62716e}
+.where .m{min-width:4rem;color:#102a2e}
+.where span:last-child{font-size:.9rem}
+@media(max-width:800px){.hero,.grid{grid-template-columns:1fr}.steps{grid-template-columns:1fr}}
+</style>
+<script src="{{ url_for('tabular_ml.static', filename='vendor/mathjax-config.js') }}"></script>
+<script defer id="MathJax-script" src="{{ url_for('tabular_ml.static', filename='vendor/mathjax/tex-chtml-full.js') }}"></script>
+</head>
+<body>
+<main>
+<a href="{{ url_for('tabular_ml.index') }}">← Workbench</a>
+
+<section class="hero">
+  <div>
+    <p class="eyebrow">SCIENTIFIC GUIDE · RELEASE 0.2.0</p>
+    <h1>From table to evidence</h1>
+    <p>Tabular ML profiles a CSV/XLSX table, separates evaluation evidence, fits preprocessing inside each training fold, compares CPU models, and evaluates the selected pipeline on untouched holdout data.</p>
+  </div>
+  <img src="{{ url_for('tabular_ml.static', filename='help/tabular-ml-workflow.svg') }}" alt="Leakage-aware machine learning workflow">
+</section>
+
+<ol class="steps">
+  <li>Profile types, missingness, target, and leakage risks.</li>
+  <li>Choose a random, stratified, grouped, or time-aware split.</li>
+  <li>Fit imputation, encoding, scaling, and the model inside each fold.</li>
+  <li>Compare cross-validation distributions, not one lucky score.</li>
+  <li>Evaluate the held-out set once; explain and export the whole pipeline.</li>
+</ol>
+
+<section class="grid">
+  <article class="card">
+    <h2>Main equations</h2>
+
+    <div class="eq mathjax" role="math" aria-label="z_j equals x_j minus the training mean, divided by the training standard deviation">\[ z_{j} \;=\; \frac{x_{j} - \mu_{\text{train},\,j}}{\sigma_{\text{train},\,j}} \]</div>
+    <p class="note">Scaling statistics come from the training folds only. Validation data must never influence preprocessing.</p>
+
+    <div class="eq mathjax" role="math" aria-label="R squared equals one minus the sum of squared residuals divided by the total sum of squares">\[ R^{2} \;=\; 1 \;-\; \frac{\displaystyle\sum_{i}\bigl(y_{i}-\hat{y}_{i}\bigr)^{2}}{\displaystyle\sum_{i}\bigl(y_{i}-\bar{y}\bigr)^{2}} \]</div>
+    <p class="note">Explained variance relative to simply predicting the target mean.</p>
+
+    <div class="eq mathjax" role="math" aria-label="F1 equals two P R divided by P plus R, where P is precision and R is recall">\[ \begin{gathered} F_{1} \;=\; \frac{2\,P\,R}{P + R} \\[6pt] P = \frac{TP}{TP + FP}, \qquad R = \frac{TP}{TP + FN} \end{gathered} \]</div>
+    <p class="note">Balances false-positive and false-negative performance in one classification number.</p>
+
+    <div class="eq mathjax" role="math" aria-label="the cross-validated estimate equals one over K times the sum over k of the metric of the model trained without fold k, evaluated on fold k">\[ \widehat{\mathrm{CV}} \;=\; \frac{1}{K}\sum_{k=1}^{K} m\bigl(f_{-k},\, D_{k}\bigr) \]</div>
+    <p class="note">Each fold is scored by a model that never saw it. That is what makes the estimate honest.</p>
+
+    <dl class="where">
+      <dt>where</dt>
+      <dd><span class="m mathjax">\(x_{j}\)</span><span>raw value of numeric feature <span class="m mathjax">\(j\)</span></span></dd>
+      <dd><span class="m mathjax">\(y_{i},\,\hat{y}_{i}\)</span><span>observed and predicted target for sample <span class="m mathjax">\(i\)</span></span></dd>
+      <dd><span class="m mathjax">\(TP,\,FP,\,FN\)</span><span>true positives, false positives, false negatives</span></dd>
+      <dd><span class="m mathjax">\(f_{-k},\,D_{k}\)</span><span>model fitted without fold <span class="m mathjax">\(k\)</span>, and that fold's held-out data</span></dd>
+    </dl>
+  </article>
+
+  <article class="card">
+    <h2>Critical inputs</h2>
+    <dl>
+      <dt>Target and task</dt><dd>Define what is predicted and which metrics are scientifically meaningful.</dd>
+      <dt>Features</dt><dd>Must exist at prediction time; identifiers, future information, and target proxies create leakage.</dd>
+      <dt>Split policy</dt><dd>Must preserve groups, time order, or class balance where the data-generating process requires it.</dd>
+      <dt>Hyperparameters</dt><dd>Control capacity, regularization, interpretability, and CPU cost.</dd>
+    </dl>
+  </article>
+
+  <article class="card">
+    <h2>Reading results</h2>
+    <ul>
+      <li>Compare holdout performance with the full cross-validation distribution.</li>
+      <li>Inspect confusion matrices, residual patterns, subgroup behavior, and class balance.</li>
+      <li>Permutation importance shows predictive dependence, not causation.</li>
+      <li>Preserve the fitted preprocessing-and-model pipeline together.</li>
+    </ul>
+  </article>
+
+  <article class="card">
+    <h2>Limits and failure modes</h2>
+    <ul>
+      <li>Small or shifted datasets can produce unstable estimates.</li>
+      <li>Random splits are misleading for grouped or time-ordered observations.</li>
+      <li>Association and feature importance do not establish a physical mechanism.</li>
+      <li>Deployment requires monitoring drift, errors, and domain constraints.</li>
+    </ul>
+    <h2 style="margin-top:22px">Privacy</h2>
+    <p class="note">This workbench runs on the office intranet and is CPU-only. Your table is held in a session store for the lifetime of your work and is never sent outside the office network. No personal information is collected.</p>
+  </article>
+</section>
+</main>
+</body>
+</html>

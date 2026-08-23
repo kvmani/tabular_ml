@@ -50,6 +50,12 @@ def index() -> str:
     return render_template("index.html")
 
 
+@tabular_ml_bp.get("/help")
+def help_page() -> str:
+    """Render the workflow, equations, critical inputs, and interpretation limits."""
+    return render_template("help.html")
+
+
 @tabular_ml_bp.after_request
 def security_headers(response: Response) -> Response:
     response.headers.setdefault("X-Content-Type-Options", "nosniff")

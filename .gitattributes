@@ -1,8 +1,4 @@
-*.csv text eol=lf
-*.json text eol=lf
-*.py text eol=lf
-*.ts text eol=lf
-*.tsx text eol=lf
-*.css text eol=lf
-*.html text eol=lf
-
+# Vendored third-party assets ship byte-for-byte; do not rewrite line endings.
+src/tabular_ml_service/static/vendor/** -text
+*.woff  binary
+*.woff2 binary

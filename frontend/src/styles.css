@@ -80,6 +80,7 @@ p { color: var(--muted); line-height: 1.62; }
 .tag-row span, .type-chip { padding: 4px 7px; border: 1px solid #45615f; color: #b6cac5; font-size: .64rem; text-transform: uppercase; }
 .text-button { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: #e9a13f; cursor: pointer; font-weight: 700; }
 .landing-footer { display: flex; justify-content: space-between; padding: 23px 42px; background: #0b2023; color: #809794; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }
+.landing-header-actions { display:flex; align-items:center; gap:16px; }.help-link { color:#0f766e; font-size:.75rem; font-weight:800; text-decoration:none; }.help-link:hover { text-decoration:underline; }
 
 .workspace-shell { min-height: 100vh; display: grid; grid-template: 82px 1fr / 245px 1fr; }
 .workspace-header { position: sticky; z-index: 30; top: 0; grid-column: 1 / -1; display: grid; grid-template-columns: 245px 1fr auto; align-items: center; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.96); }
