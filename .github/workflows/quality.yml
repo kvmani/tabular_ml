@@ -1,8 +1,10 @@
 name: quality
 
+# Manual only (maintainer's policy, 2026-10-08): CI costs GitHub minutes, so it never runs on
+# push, pull request or a schedule. Start it from the Actions tab ("Run workflow") before a
+# release or an upgrade; day to day, run the same steps locally (AGENTS.md).
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   python:

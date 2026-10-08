@@ -64,6 +64,10 @@ npm run build
 npm test
 ~~~
 
+Run these checks locally before every push. CI (`.github/workflows/quality.yml`) is
+manual-only to save GitHub minutes: it never runs on push, pull request or a schedule.
+Start it from the Actions tab ("Run workflow") before a release or an upgrade.
+
 ## Integrate with `ml_server`
 
 The package exposes the same application as a mountable Flask blueprint:
